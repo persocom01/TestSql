@@ -4,10 +4,10 @@ An SQL testing playground organized by programming language.
 
 ## Installation
 
-This project is done on atom and uses localhost as the database server by installing the WinNMP server stack.
+This project is done on atom and uses localhost as the database server by installing the WinNMP server stack. Atom was used as text editor.
 
-* [atom_1.40.1](https://atom.io/)
 * [WinNMP 19.06](https://winnmp.wtriple.com/)
+* [atom 1.40.1](https://atom.io/)
 
 ### Atom packages used:
 
