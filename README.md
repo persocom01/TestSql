@@ -10,6 +10,12 @@ This project used the database server from the WinNMP server stack. Python was u
 * [python 3.8.1 Windows x86-64](https://www.python.org/downloads/)
 * [atom 1.43.0](https://atom.io/)
 
+The mariadb module was used to connect to mariadb. To install, open cmd and type:
+
+```
+pip install --pre mariadb
+```
+
 ### Atom packages used:
 
 * Hydrogen
