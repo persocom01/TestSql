@@ -1,13 +1,14 @@
 # TestSQL
 
-An SQL testing playground organized by programming language.
+An SQL testing playground organized by topic in the sql tutorial here: https://www.tutorialspoint.com/sql/index.htm
 
 ## Installation
 
-This project is done on atom and uses localhost as the database server by installing the WinNMP server stack. Atom was used as text editor.
+This project used the database server from the WinNMP server stack. Python was used to connect to the database server and Atom was used as text editor.
 
-* [WinNMP 19.06](https://winnmp.wtriple.com/)
-* [atom 1.40.1](https://atom.io/)
+* [WinNMP 20.01](https://winnmp.wtriple.com/)
+* [python 3.8.1 Windows x86-64](https://www.python.org/downloads/)
+* [atom 1.43.0](https://atom.io/)
 
 ### Atom packages used:
 
