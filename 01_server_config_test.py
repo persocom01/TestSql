@@ -8,8 +8,8 @@ server_config = {
     'port': 3306,
 }
 
-file_path = './server.cfg'
+cfg_path = './server.cfg'
 
 # Create human readable json file.
-with open(file_path, 'w') as f:
+with open(cfg_path, 'w') as f:
     json.dump(server_config, f, sort_keys=True, indent=4, ensure_ascii=False)

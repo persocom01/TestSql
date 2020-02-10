@@ -4,9 +4,9 @@ import json
 
 # SQL is case insensitive.
 dbname = 'testDB'
-file_path = './server.cfg'
+cfg_path = './server.cfg'
 
-with open(file_path, 'r') as f:
+with open(cfg_path, 'r') as f:
     server_config = json.load(f)
 db = mdb.connect(**server_config)
 cursor = db.cursor()
