@@ -13,7 +13,7 @@ with open(cfg_path, 'r') as f:
 db = mdb.connect(**server_config)
 cursor = db.cursor()
 
-#
+# Select database to be used. Can also be set in server_config instead.
 command = f'USE {dbname};'
 try:
     cursor.execute(command)

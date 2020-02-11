@@ -6,6 +6,9 @@ server_config = {
     # 'password': '1234',
     'host': '127.0.0.1',
     'port': 3306,
+    # 'database': 'testDB',
+    # Unknown how to set local_infile.
+    # 'local_infile': True
 }
 
 cfg_path = './server.cfg'
