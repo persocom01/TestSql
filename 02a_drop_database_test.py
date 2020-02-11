@@ -1,4 +1,4 @@
-# Demonstrates creation of databases.
+# Demonstrates deletion of databases.
 import mariadb as mdb
 import json
 
