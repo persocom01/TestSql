@@ -2,7 +2,9 @@
 import mariadb as mdb
 import json
 import glob
-import os
+import pandas as pd
+import pleiades as ple
+from pathlib import Path
 
 # SQL is case insensitive.
 dbname = 'testDB'
@@ -19,6 +21,21 @@ try:
     cursor.execute(command)
 except mdb.ProgrammingError:
     print('database does not exist')
+
+
+cz = ple.CZ(cursor)
+
+print(cz.table_from_csv('./data/client.csv', 'id'))
+
+command = 'DROP client'
+print('command executed')
+
+# Create tables in database.
+# for file in glob.glob('./data/*.csv'):
+#     print(Path(file).stem)
+#     df = pd.read_csv(file, nrows=100)
+#     print(df)
+#     print(df.columns, df.dtypes)
 
 # for file in glob.glob('./data/*.csv'):
 #     print(file)
