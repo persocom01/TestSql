@@ -13,7 +13,7 @@ class CZ:
             'datetime64': 'DATETIME'
         }
 
-    def create_table_from_csv(self, file, primary_key=None, print_only=False, nrows=100):
+    def csv_table(self, file, primary_key=None, print_only=False, nrows=100):
         from pathlib import Path
         import pandas as pd
         from math import ceil
@@ -29,8 +29,7 @@ class CZ:
             if df_dtypes[i] in self.dtype_dic:
                 sql_dtypes.append(self.dtype_dic[df_dtypes[i]])
             else:
-                # The length of the string datatype is determined by the
-                # maximum length of strings in the column.
+                # Determine VARCHAR length.
                 char_length = ceil(df[col].map(len).max() / 50) * 50
                 sql_dtypes.append(f'VARCHAR({char_length})')
             command = command + f'\n{col} {sql_dtypes[i]},'
@@ -44,7 +43,25 @@ class CZ:
             self.cursor.execute(command)
             return f'table {tablename} created.'
 
-    def csv_into_database(self, file_paths, primary_keys=None):
+    def csv_insert(self, file, tablename=None, print_only=False):
+        import pandas as pd
+        if tablename is None:
+            from pathlib import Path
+            tablename = Path(file).stem
+        df = pd.read_csv(file)
+        rows = [x for x in df.itertuples(index=False, name=None)]
+        cols = ','.join(df.columns)
+        command = f'INSERT INTO {tablename}({cols}) VALUES'
+        for r in rows:
+            command = command + f'\n{r},'
+        command = command[:-1] + ';'
+        if print_only:
+            return command
+        else:
+            self.cursor.execute(command)
+            return f'data loaded into table {tablename}.'
+
+    def csvs_into_database(self, file_paths, primary_keys=None):
         import glob
         for i, file in enumerate(glob.glob(file_paths)):
-            self.create_table_from_csv(file)
+            self.csv_table(file)
