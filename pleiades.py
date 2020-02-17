@@ -13,7 +13,7 @@ class CZ:
             'datetime64': 'DATETIME'
         }
 
-    def csv_table(self, file, primary_key=None, print_only=False, nrows=100):
+    def csv_table(self, file, pkey=None, printc=False, nrows=100):
         from pathlib import Path
         import pandas as pd
         from math import ceil
@@ -33,17 +33,17 @@ class CZ:
                 char_length = ceil(df[col].map(len).max() / 50) * 50
                 sql_dtypes.append(f'VARCHAR({char_length})')
             command = command + f'\n{col} {sql_dtypes[i]},'
-        if primary_key:
-            command = command + f'\nPRIMARY KEY ({primary_key})\n);'
+        if pkey:
+            command = command + f'\nPRIMARY KEY ({pkey})\n);'
         else:
             command = command[:-1] + '\n);'
-        if print_only:
+        if printc:
             return command
         else:
             self.cursor.execute(command)
             return f'table {tablename} created.'
 
-    def csv_insert(self, file, tablename=None, print_only=False):
+    def csv_insert(self, file, tablename=None, printc=False):
         import pandas as pd
         if tablename is None:
             from pathlib import Path
@@ -55,13 +55,14 @@ class CZ:
         for r in rows:
             command = command + f'\n{r},'
         command = command[:-1] + ';'
-        if print_only:
+        if printc:
             return command
         else:
             self.cursor.execute(command)
             return f'data loaded into table {tablename}.'
 
-    def csvs_into_database(self, file_paths, primary_keys=None):
+    def csvs_into_database(self, file_paths, pkeys=None):
         import glob
         for i, file in enumerate(glob.glob(file_paths)):
-            self.csv_table(file)
+            self.csv_table(file, pkeys[i])
+            self.csv_insert(file)

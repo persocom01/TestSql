@@ -25,7 +25,7 @@ except mdb.ProgrammingError:
 
 cz = ple.CZ(cursor)
 
-print(cz.table_from_csv('./data/client.csv', 'id'))
+print(cz.csv_table('./data/client.csv', 'id'))
 
 command = 'DROP client'
 print('command executed')
