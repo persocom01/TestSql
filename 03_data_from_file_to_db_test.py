@@ -1,10 +1,7 @@
 # Demonstrates loading of files into a database.
 import mariadb as mdb
 import json
-import glob
-import pandas as pd
 import pleiades as ple
-from pathlib import Path
 
 # SQL is case insensitive.
 dbname = 'testDB'
@@ -25,21 +22,27 @@ except mdb.ProgrammingError:
 
 cz = ple.CZ(cursor)
 
-print(cz.csv_table('./data/client.csv', 'id'))
+# Demonstrates creating a table.
+print('create table:')
+print(cz.csv_table('./data/client.csv', 'id', printc=True))
+print()
 
-command = 'DROP client'
-print('command executed')
+# Convenience function to load files into database.
+file_paths = './data/*.csv'
+print(cz.csvs_into_database(file_paths, ['id', 'id', 'id', 'id']))
 
-# Create tables in database.
-# for file in glob.glob('./data/*.csv'):
-#     print(Path(file).stem)
-#     df = pd.read_csv(file, nrows=100)
-#     print(df)
-#     print(df.columns, df.dtypes)
+# Show created tables.
+command = '''
+SHOW TABLES
+'''
+cursor.execute(command)
+print(cursor.fetchall())
+print()
 
-# for file in glob.glob('./data/*.csv'):
-#     print(file)
-#
-# print(os.listdir('./data'))
+# Drop tables.
+command = '''
+DROP TABLES client,konosuba,partner,staff_request,timesheet_entry
+'''
+cursor.execute(command)
 
-# LOAD DATA LOCAL INFILE 'source.csv' INTO target_db.target_table FIELDS TERMINATED BY ',' ENCLOSED BY '"' LINES TERMINATED BY '\r\n'
+print(cz.show_tables())

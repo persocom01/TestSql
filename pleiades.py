@@ -4,7 +4,7 @@
 
 class CZ:
 
-    def __init__(self, cursor):
+    def __init__(self, cursor=None):
         self.cursor = cursor
         self.dtype_dic = {
             'int64': 'INT',
@@ -12,6 +12,13 @@ class CZ:
             'bool': 'BOOLEAN',
             'datetime64': 'DATETIME'
         }
+
+    def get_db(self):
+        command = '''
+        SELECT DATABASE()
+        '''
+        self.cursor.execute(command)
+        return self.cursor.fetchone()[0]
 
     def csv_table(self, file, pkey=None, printc=False, nrows=100):
         from pathlib import Path
@@ -34,7 +41,7 @@ class CZ:
                 sql_dtypes.append(f'VARCHAR({char_length})')
             command = command + f'\n{col} {sql_dtypes[i]},'
         if pkey:
-            command = command + f'\nPRIMARY KEY ({pkey})\n);'
+            command += f'\nPRIMARY KEY ({pkey})\n);'
         else:
             command = command[:-1] + '\n);'
         if printc:
@@ -53,7 +60,7 @@ class CZ:
         cols = ','.join(df.columns)
         command = f'INSERT INTO {tablename}({cols}) VALUES'
         for r in rows:
-            command = command + f'\n{r},'
+            command += f'\n{r},'
         command = command[:-1] + ';'
         if printc:
             return command
@@ -63,6 +70,34 @@ class CZ:
 
     def csvs_into_database(self, file_paths, pkeys=None):
         import glob
-        for i, file in enumerate(glob.glob(file_paths)):
-            self.csv_table(file, pkeys[i])
-            self.csv_insert(file)
+        files = glob.glob(file_paths)
+        has_incomplete_pkeys = False
+        if pkeys:
+            if isinstance(pkeys, str):
+                pkeys = [pkeys]
+            else:
+                for i, file in enumerate(files):
+                    try:
+                        self.csv_table(file, pkeys[i])
+                    except IndexError:
+                        has_incomplete_pkeys = True
+                        self.csv_table(file)
+                    self.csv_insert(file)
+        else:
+            for file in files:
+                self.csv_table(file)
+                self.csv_insert(file)
+        return_statement = f'files written to database {self.get_db()}.'
+        if has_incomplete_pkeys:
+            return_statement = 'not all tables have primary keys.\n' + return_statement
+        return return_statement
+
+    def show_tables(self, all=False):
+        if all:
+            command = f"SELECT TABLE_NAME FROM INFORMATION_SCHEMA.TABLES WHERE TABLE_TYPE='BASE TABLE'"
+        else:
+            command = '''
+            SHOW TABLES
+            '''
+        self.cursor.execute(command)
+        return self.cursor.fetchall()
