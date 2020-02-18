@@ -24,7 +24,7 @@ class CZ:
         from pathlib import Path
         import pandas as pd
         from math import ceil
-        # The filename will be used as the table name.
+        # The file name will be used as the table name.
         tablename = Path(file).stem
         # pandas is used to impute datatypes.
         df = pd.read_csv(file, nrows=nrows)

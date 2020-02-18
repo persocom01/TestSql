@@ -1,9 +1,10 @@
-# Demonstrates loading of files into a database.
+# Demonstrates writing of files into a database.
+# The process involves creating tables in the database and loading the data
+# into it.
 import mariadb as mdb
 import json
 import pleiades as ple
 
-# SQL is case insensitive.
 dbname = 'testDB'
 cfg_path = './server.cfg'
 
@@ -29,20 +30,19 @@ print()
 
 # Convenience function to load files into database.
 file_paths = './data/*.csv'
-print(cz.csvs_into_database(file_paths, ['id', 'id', 'id', 'id']))
-
-# Show created tables.
-command = '''
-SHOW TABLES
-'''
-cursor.execute(command)
-print(cursor.fetchall())
-print()
+print(cz.csvs_into_database(file_paths, ['id', 'id', 'id', 'id', 'id']))
+# Show created tables. The sql query is SHOW TABLES
+print(cz.show_tables())
 
 # Drop tables.
 command = '''
 DROP TABLES client,konosuba,partner,staff_request,timesheet_entry
 '''
 cursor.execute(command)
-
 print(cz.show_tables())
+
+# End.
+cursor.close()
+db.commit()
+db.close()
+print('commands executed.')
