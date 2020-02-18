@@ -10,11 +10,19 @@ This project used the database server from the WinNMP server stack. Python was u
 * [python 3.8.1 Windows x86-64](https://www.python.org/downloads/)
 * [atom 1.43.0](https://atom.io/)
 
-The mariadb module was used to connect to mariadb. To install, open cmd and type:
+pip was used to install mariadb python connectors. To install, open cmd and type:
 
 ```
 pip install --pre mariadb
+pip install sqlalchemy
+pip install pymysql
 ```
+
+This installs following modules:
+
+* mariadb - the offical mariadb python connector.
+* sqlalchemy - a comprehensive set of tools for working with databases and Python.
+* pymysql - the api for sqlalchemy's engine.
 
 ### Atom packages used:
 
