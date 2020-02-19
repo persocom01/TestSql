@@ -41,7 +41,6 @@ DROP TABLES client,konosuba,partner,staff_request,timesheet_entry
 cursor.execute(command)
 print(cz.show_tables())
 
-# End.
 cursor.close()
 db.commit()
 db.close()
