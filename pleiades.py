@@ -13,12 +13,34 @@ class CZ:
             'datetime64': 'DATETIME'
         }
 
-    def get_db(self):
+    def get_db(self, printc=False):
         command = '''
         SELECT DATABASE()
         '''
+        if printc:
+            return command
+        else:
+            self.cursor.execute(command)
+            return self.cursor.fetchone()[0]
+
+    def use_db(self, db, printc=False):
+        command = f'USE {db};'
         self.cursor.execute(command)
-        return self.cursor.fetchone()[0]
+        if printc:
+            return command
+        else:
+            self.cursor.execute(command)
+            return f'database {db} selected.'
+
+    def unuse_db(self, printc=False, _db='2arnbzheo2j0gygk'):
+        command = f'CREATE DATABASE {_db};'
+        command += f'\nUSE {_db};'
+        command += f'\nDROP DATABASE {_db};'
+        if printc:
+            return command
+        else:
+            self.cursor.execute(command)
+            return 'database deselected.'
 
     def csv_table(self, file, pkey=None, printc=False, nrows=100):
         from pathlib import Path
@@ -39,7 +61,10 @@ class CZ:
                 # Determine VARCHAR length.
                 char_length = ceil(df[col].map(len).max() / 50) * 50
                 sql_dtypes.append(f'VARCHAR({char_length})')
-            command = command + f'\n{col} {sql_dtypes[i]},'
+            if pkey and col == pkey:
+                command = command + f'\n{col} {sql_dtypes[i]} NOT NULL,'
+            else:
+                command = command + f'\n{col} {sql_dtypes[i]},'
         if pkey:
             command += f'\nPRIMARY KEY ({pkey})\n);'
         else:
