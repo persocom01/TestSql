@@ -1,0 +1,42 @@
+# SQL operators
+
+Arithmetic operators:
++
+-
+*
+/
+%
+
+Comparison operators:
+=
+!=
+<> same as !=
+>
+!> not greater than
+<
+!< not smaller than
+>=
+<=
+
+Logical operators:
+ALL
+AND
+ANY
+BETWEEN
+EXISTS
+IN
+LIKE
+NOT
+OR
+IS NULL
+UNIQUE
+
+Operator precedence:
+()
+*/%
++-
+comparison operators
+NOT
+AND
+ALL ANY BETWEEN IN LIKE OR SOME
+=
