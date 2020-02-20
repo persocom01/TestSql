@@ -94,6 +94,12 @@ class CZ:
             return f'data loaded into table {tablename}.'
 
     def csvs_into_database(self, file_paths, pkeys=None):
+        '''
+        Convenience function that loads a folder of files into a database.
+        Primary keys must be given as a list in file alphabetical order. Note
+        that this order can be different from atom file order if _ is used. To
+        skip a file, pass '' as a list item.
+        '''
         import glob
         files = glob.glob(file_paths)
         has_incomplete_pkeys = False

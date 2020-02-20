@@ -28,3 +28,13 @@ df = pd.read_sql_query(command, engine)
 print('not male AND human OR class = adventurer')
 print(df.head())
 print()
+
+command = '''
+SELECT name,class,race,age
+FROM konosuba
+WHERE (NOT male AND race = 'human') OR class = 'adventurer';
+'''
+df = pd.read_sql_query(command, engine)
+print('not male AND human OR class = adventurer')
+print(df.head())
+print()

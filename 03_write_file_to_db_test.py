@@ -4,6 +4,7 @@
 import mariadb as mdb
 import json
 import pleiades as ple
+import numpy as np
 
 dbname = 'testDB'
 cfg_path = './server.cfg'
@@ -30,13 +31,14 @@ print()
 
 # Convenience function to load files into database.
 file_paths = './data/*.csv'
-print(cz.csvs_into_database(file_paths, ['id', 'id', 'id', 'id', 'id']))
+print(cz.csvs_into_database(file_paths, [
+      'id', 'id', 'id', 'id', '', 'id', 'id']))
 # Show created tables. The sql query is SHOW TABLES
 print(cz.show_tables())
 
 # Drop tables.
 command = '''
-DROP TABLES client,konosuba,partner,staff_request,timesheet_entry
+DROP TABLES client,konosuba,partner,quest_map,quest,staff_request,timesheet_entry
 '''
 cursor.execute(command)
 print(cz.show_tables())
