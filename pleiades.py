@@ -75,7 +75,16 @@ class CZ:
             self.cursor.execute(command)
             return f'table {tablename} created.'
 
-    def csv_insert(self, file, tablename=None, printc=False):
+    def csv_insert(self, file, updatekey=None, posgres=False, tablename=None, printc=False):
+        '''
+        Convenience function that uploads file data into a premade database
+        table.
+
+        params:
+            updatekey   given the table's primary key, the function update all
+                        values in the table with those from the file except the
+                        primary key.
+        '''
         import pandas as pd
         if tablename is None:
             from pathlib import Path
@@ -86,6 +95,19 @@ class CZ:
         command = f'INSERT INTO {tablename}({cols}) VALUES'
         for r in rows:
             command += f'\n{r},'
+        if updatekey:
+            if posgres:
+                command = command[:-1] + \
+                    f'\nON CONFLICT ({updatekey}) DO UPDATE SET'
+                for c in df.columns:
+                    if c != updatekey:
+                        command += f'\n{c}=excluded.{c},'
+            else:
+                command = command[:-1] + \
+                    '\nON DUPLICATE KEY UPDATE'
+                for c in df.columns:
+                    if c != updatekey:
+                        command += f'\n{c}=VALUES({c}),'
         command = command[:-1] + ';'
         if printc:
             return command
@@ -95,7 +117,7 @@ class CZ:
 
     def csvs_into_database(self, file_paths, pkeys=None):
         '''
-        Convenience function that loads a folder of files into a database.
+        Convenience function that uploads a folder of files into a database.
         Primary keys must be given as a list in file alphabetical order. Note
         that this order can be different from atom file order if _ is used. To
         skip a file, pass '' as a list item.

@@ -4,7 +4,6 @@
 import mariadb as mdb
 import json
 import pleiades as ple
-import numpy as np
 
 dbname = 'testDB'
 cfg_path = './server.cfg'

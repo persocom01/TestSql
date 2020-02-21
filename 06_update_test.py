@@ -1,30 +1,41 @@
 # Demonstrates the where, and and or logical operators.
 import pandas as pd
 from sqlalchemy import create_engine
+import pleiades as ple
 
 engine = create_engine('mysql+pymysql://root:@localhost/testDB')
 con = engine.connect()
 
+# Demonstrates the basic update datement.
+# If where is not specified all rows will be updated with the same value.
 command = '''
-SELECT name,class,race,age
-FROM konosuba
-WHERE age > 18;
+UPDATE konosuba
+SET age = 17000
+WHERE id = 1;
+'''
+con.execute(command)
+
+command = '''
+SELECT * FROM konosuba
 '''
 df = pd.read_sql_query(command, engine)
-print('age > 18')
-print(df.head())
+print('before')
+print(df)
 print()
 
-# Note that BOOLEAN columns don't need a value = 1 or value = True, but it does
-# still work if written that way.
-# Brackets are optional in this case, but makes the logic clearer, as AND has
-# higher priority over OR.
+cz = ple.CZ()
+
+# Demonstrates mass updating of a table from a file.
+command = cz.csv_insert('./data/konosuba.csv', updatekey='id', printc=True)
+print('command:')
+print(command)
+print()
+con.execute(command)
+
 command = '''
-SELECT name,class,race,age
-FROM konosuba
-WHERE (NOT isekai AND race = 'human') OR class = 'adventurer';
+SELECT * FROM konosuba
 '''
 df = pd.read_sql_query(command, engine)
-print('not isekai AND human OR class = adventurer')
-print(df.head())
+print('after')
+print(df)
 print()
