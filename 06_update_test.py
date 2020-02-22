@@ -1,5 +1,4 @@
 # Demonstrates the where, and and or logical operators.
-import pandas as pd
 from sqlalchemy import create_engine
 import pleiades as ple
 
