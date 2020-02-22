@@ -17,7 +17,7 @@ con.execute(command)
 
 cz = ple.CZ(engine=engine)
 
-print(cz.select_from('konosuba'))
+print(cz.select_from('konosuba').ex())
 print()
 
 # Demonstrates mass updating of a table from a file.
@@ -27,5 +27,5 @@ print(command)
 print()
 con.execute(command)
 
-print(cz.select_from('konosuba'))
+print(cz.select_from('konosuba').ex())
 print()

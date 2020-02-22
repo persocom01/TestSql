@@ -14,6 +14,33 @@ class CZ:
             'datetime64': 'DATETIME'
         }
 
+    class Select:
+        '''
+        Select object that allows a select statement to be extended with
+        methods like where before being executed with .ex()
+
+        params:
+            engine  given an sqlalchemy engine, will return executed sql
+                    commands as a DataFrame.
+        '''
+
+        def __init__(self, command, cursor=None, engine=None):
+            self.engine = engine
+            self.command = command
+            self.cursor = cursor
+
+        def ex(self, printc=False):
+            command = self.command
+            if printc:
+                return command
+            else:
+                if self.engine:
+                    import pandas as pd
+                    df = pd.read_sql_query(command, self.engine)
+                    return df
+                else:
+                    return self.cursor.execute(command)
+
     def get_db(self, printc=False):
         command = '''
         SELECT DATABASE()
@@ -43,7 +70,7 @@ class CZ:
             self.cursor.execute(command)
             return 'database deselected.'
 
-    def select_from(self, table, cols=None, printc=False):
+    def select_from(self, table, cols=None):
         command = 'SELECT '
         if cols:
             if isinstance(cols, str):
@@ -53,16 +80,11 @@ class CZ:
             command = command[:-1]
         else:
             command += f'*'
-        command += f'\nFROM {table}'
-        if printc:
-            return command
-        else:
-            if self.engine:
-                import pandas as pd
-                df = pd.read_sql_query(command, self.engine)
-                return df
-            else:
-                return self.cursor.execute(command)
+        command += f'\nFROM {table};'
+        return self.Select(command, cursor=self.cursor, engine=self.engine)
+
+    def where(self, condition):
+        pass
 
     def csv_table(self, file, pkey=None, printc=False, nrows=100):
         from pathlib import Path
