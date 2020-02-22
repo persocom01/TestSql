@@ -4,7 +4,8 @@
 
 class CZ:
 
-    def __init__(self, cursor=None):
+    def __init__(self, cursor=None, engine=None):
+        self.engine = engine
         self.cursor = cursor
         self.dtype_dic = {
             'int64': 'INT',
@@ -41,6 +42,27 @@ class CZ:
         else:
             self.cursor.execute(command)
             return 'database deselected.'
+
+    def select_from(self, table, cols=None, printc=False):
+        command = 'SELECT '
+        if cols:
+            if isinstance(cols, str):
+                cols = [cols]
+            for col in cols:
+                command += f'{col},'
+            command = command[:-1]
+        else:
+            command += f'*'
+        command += f'\nFROM {table}'
+        if printc:
+            return command
+        else:
+            if self.engine:
+                import pandas as pd
+                df = pd.read_sql_query(command, self.engine)
+                return df
+            else:
+                return self.cursor.execute(command)
 
     def csv_table(self, file, pkey=None, printc=False, nrows=100):
         from pathlib import Path

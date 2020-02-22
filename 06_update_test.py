@@ -15,15 +15,10 @@ WHERE id = 1;
 '''
 con.execute(command)
 
-command = '''
-SELECT * FROM konosuba
-'''
-df = pd.read_sql_query(command, engine)
-print('before')
-print(df)
-print()
+cz = ple.CZ(engine=engine)
 
-cz = ple.CZ()
+print(cz.select_from('konosuba'))
+print()
 
 # Demonstrates mass updating of a table from a file.
 command = cz.csv_insert('./data/konosuba.csv', updatekey='id', printc=True)
@@ -32,10 +27,5 @@ print(command)
 print()
 con.execute(command)
 
-command = '''
-SELECT * FROM konosuba
-'''
-df = pd.read_sql_query(command, engine)
-print('after')
-print(df)
+print(cz.select_from('konosuba'))
 print()
