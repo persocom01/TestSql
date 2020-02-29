@@ -1,4 +1,4 @@
-# Demonstrates the where, and and or logical operators.
+# Demonstrates the update command.
 from sqlalchemy import create_engine
 import pleiades as ple
 

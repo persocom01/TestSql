@@ -1,30 +1,24 @@
-# Demonstrates the where, and and or logical operators.
-import pandas as pd
+# Demonstrates the delete command.
 from sqlalchemy import create_engine
+import pleiades as ple
 
 engine = create_engine('mysql+pymysql://root:@localhost/testDB')
 con = engine.connect()
 
-command = '''
-SELECT name,class,race,age
-FROM konosuba
-WHERE age > 18;
-'''
-df = pd.read_sql_query(command, engine)
-print('age > 18')
-print(df.head())
-print()
+cz = ple.CZ(engine=engine)
 
-# Note that BOOLEAN columns don't need a value = 1 or value = True, but it does
-# still work if written that way.
-# Brackets are optional in this case, but makes the logic clearer, as AND has
-# higher priority over OR.
+print('before:')
+print(cz.select_from('konosuba').ex())
+
+# Demonstrates the basic delete datement.
+# If where is not specified all rows in the table will be deleted.
 command = '''
-SELECT name,class,race,age
+DELETE
 FROM konosuba
-WHERE (NOT isekai AND race = 'human') OR class = 'adventurer';
+WHERE id = 1;
 '''
-df = pd.read_sql_query(command, engine)
-print('not isekai AND human OR class = adventurer')
-print(df.head())
+con.execute(command)
+
+print('after')
+print(cz.select_from('konosuba').ex())
 print()

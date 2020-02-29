@@ -5,7 +5,6 @@
 class CZ:
 
     def __init__(self, cursor=None, engine=None):
-        self.engine = engine
         self.cursor = cursor
         self.dtype_dic = {
             'int64': 'INT',
@@ -13,11 +12,12 @@ class CZ:
             'bool': 'BOOLEAN',
             'datetime64': 'DATETIME'
         }
+        self.engine = engine
 
     class Select:
         '''
-        Select object that allows a select statement to be extended with
-        methods like where before being executed with .ex()
+        The Select object allows a select statement to be extended with methods
+        like where before being executed with .ex()
 
         params:
             engine  given an sqlalchemy engine, will return executed sql
@@ -29,9 +29,9 @@ class CZ:
             self.command = command
             self.cursor = cursor
 
-        def ex(self, printc=False):
+        def ex(self, printable=False):
             command = self.command
-            if printc:
+            if printable or (self.cursor is None and self.engine is None):
                 return command
             else:
                 if self.engine:
@@ -41,30 +41,30 @@ class CZ:
                 else:
                     return self.cursor.execute(command)
 
-    def get_db(self, printc=False):
+    def get_db(self, printable=False):
         command = '''
         SELECT DATABASE()
         '''
-        if printc:
+        if printable or self.cursor is None:
             return command
         else:
             self.cursor.execute(command)
             return self.cursor.fetchone()[0]
 
-    def use_db(self, db, printc=False):
+    def use_db(self, db, printable=False):
         command = f'USE {db};'
         self.cursor.execute(command)
-        if printc:
+        if printable or self.cursor is None:
             return command
         else:
             self.cursor.execute(command)
             return f'database {db} selected.'
 
-    def unuse_db(self, printc=False, _db='2arnbzheo2j0gygk'):
+    def unuse_db(self, printable=False, _db='2arnbzheo2j0gygk'):
         command = f'CREATE DATABASE {_db};'
         command += f'\nUSE {_db};'
         command += f'\nDROP DATABASE {_db};'
-        if printc:
+        if printable or self.cursor is None:
             return command
         else:
             self.cursor.execute(command)
@@ -86,7 +86,7 @@ class CZ:
     def where(self, condition):
         pass
 
-    def csv_table(self, file, pkey=None, printc=False, nrows=100):
+    def csv_table(self, file, pkey=None, printable=False, nrows=100):
         from pathlib import Path
         import pandas as pd
         from math import ceil
@@ -113,13 +113,13 @@ class CZ:
             command += f'\nPRIMARY KEY ({pkey})\n);'
         else:
             command = command[:-1] + '\n);'
-        if printc:
+        if printable or self.cursor is None:
             return command
         else:
             self.cursor.execute(command)
             return f'table {tablename} created.'
 
-    def csv_insert(self, file, updatekey=None, posgres=False, tablename=None, printc=False):
+    def csv_insert(self, file, updatekey=None, posgres=False, tablename=None, printable=False):
         '''
         Convenience function that uploads file data into a premade database
         table.
@@ -153,7 +153,7 @@ class CZ:
                     if c != updatekey:
                         command += f'\n{c}=VALUES({c}),'
         command = command[:-1] + ';'
-        if printc:
+        if printable or self.cursor is None:
             return command
         else:
             self.cursor.execute(command)
