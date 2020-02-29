@@ -20,7 +20,7 @@ print(cz.select_from('konosuba').ex())
 print()
 
 # Demonstrates mass updating of a table from a file.
-command = cz.csv_insert('./data/konosuba.csv', updatekey='id', printc=True)
+command = cz.csv_insert('./data/konosuba.csv', updatekey='id', printable=True)
 print('command:')
 print(command)
 print()

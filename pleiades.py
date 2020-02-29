@@ -14,7 +14,7 @@ class CZ:
         }
         self.engine = engine
 
-    class Select:
+    class SQL:
         '''
         The Select object allows a select statement to be extended with methods
         like where before being executed with .ex()
@@ -29,9 +29,9 @@ class CZ:
             self.command = command
             self.cursor = cursor
 
-        def ex(self, printable=False):
+        def ex(self, p=False):
             command = self.command
-            if printable or (self.cursor is None and self.engine is None):
+            if p or (self.cursor is None and self.engine is None):
                 return command
             else:
                 if self.engine:
@@ -40,6 +40,12 @@ class CZ:
                     return df
                 else:
                     return self.cursor.execute(command)
+
+        def where(self, condition):
+            command = self.command
+            command = command[:-1] + f'\nWHERE {condition};'
+            self.command = command
+            return self
 
     def get_db(self, printable=False):
         command = '''
@@ -81,10 +87,7 @@ class CZ:
         else:
             command += f'*'
         command += f'\nFROM {table};'
-        return self.Select(command, cursor=self.cursor, engine=self.engine)
-
-    def where(self, condition):
-        pass
+        return self.SQL(command, cursor=self.cursor, engine=self.engine)
 
     def csv_table(self, file, pkey=None, printable=False, nrows=100):
         from pathlib import Path

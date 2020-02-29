@@ -25,7 +25,7 @@ cz = ple.CZ(cursor)
 
 # Demonstrates creating a table.
 print('create table:')
-print(cz.csv_table('./data/client.csv', 'id', printc=True))
+print(cz.csv_table('./data/client.csv', 'id', printable=True))
 print()
 
 # Convenience function to load files into database.
