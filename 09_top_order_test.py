@@ -22,6 +22,8 @@ try:
 except mdb.ProgrammingError:
     print('database does not exist')
 
+cz = ple.CZ(engine=engine)
+
 # The like syntax goes like this:
 # % = wildcard. 1% fits include 1, 10 and 100.
 # _ = any single character.
@@ -57,8 +59,3 @@ WHERE name LIKE 'megu%%';
 df = pd.read_sql_query(command, engine)
 print(df.head())
 print()
-
-cursor.close()
-db.commit()
-db.close()
-print('commands executed.')

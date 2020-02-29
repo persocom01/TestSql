@@ -4,7 +4,7 @@
 
 class CZ:
 
-    def __init__(self, cursor=None, engine=None):
+    def __init__(self, cursor=None, alchemy=False):
         self.cursor = cursor
         self.dtype_dic = {
             'int64': 'INT',
@@ -12,7 +12,7 @@ class CZ:
             'bool': 'BOOLEAN',
             'datetime64': 'DATETIME'
         }
-        self.engine = engine
+        self.alchemy = alchemy
 
     class SQL:
         '''
@@ -20,26 +20,26 @@ class CZ:
         like where before being executed with .ex()
 
         params:
-            engine  given an sqlalchemy engine, will return executed sql
-                    commands as a DataFrame.
+            alchemy     when set to true, assumes that cursor is an sqlalchemy
+                        engine. This results in some sql commands being
+                        returned as a DataFrame.
         '''
 
-        def __init__(self, command, cursor=None, engine=None):
-            self.engine = engine
+        def __init__(self, command, cursor=None, alchemy=False):
+            self.alchemy = alchemy
             self.command = command
             self.cursor = cursor
 
         def ex(self, p=False):
             command = self.command
-            if p or (self.cursor is None and self.engine is None):
+            if p or self.cursor is None:
                 return command
+            if self.alchemy:
+                import pandas as pd
+                df = pd.read_sql_query(command, self.cursor)
+                return df
             else:
-                if self.engine:
-                    import pandas as pd
-                    df = pd.read_sql_query(command, self.engine)
-                    return df
-                else:
-                    return self.cursor.execute(command)
+                return self.cursor.execute(command)
 
         def where(self, condition):
             command = self.command
@@ -53,6 +53,8 @@ class CZ:
         '''
         if printable or self.cursor is None:
             return command
+        if self.alchemy:
+            return self.cursor.connect().execute(command)
         else:
             self.cursor.execute(command)
             return self.cursor.fetchone()[0]
@@ -62,9 +64,11 @@ class CZ:
         self.cursor.execute(command)
         if printable or self.cursor is None:
             return command
+        if self.alchemy:
+            self.cursor.connect().execute(command)
         else:
             self.cursor.execute(command)
-            return f'database {db} selected.'
+        return f'database {db} selected.'
 
     def unuse_db(self, printable=False, _db='2arnbzheo2j0gygk'):
         command = f'CREATE DATABASE {_db};'
@@ -72,9 +76,11 @@ class CZ:
         command += f'\nDROP DATABASE {_db};'
         if printable or self.cursor is None:
             return command
+        if self.alchemy:
+            self.cursor.connect().execute(command)
         else:
             self.cursor.execute(command)
-            return 'database deselected.'
+        return 'database deselected.'
 
     def select_from(self, table, cols=None):
         command = 'SELECT '
@@ -87,7 +93,7 @@ class CZ:
         else:
             command += f'*'
         command += f'\nFROM {table};'
-        return self.SQL(command, cursor=self.cursor, engine=self.engine)
+        return self.SQL(command, cursor=self.cursor, alchemy=self.alchemy)
 
     def csv_table(self, file, pkey=None, printable=False, nrows=100):
         from pathlib import Path
@@ -118,9 +124,11 @@ class CZ:
             command = command[:-1] + '\n);'
         if printable or self.cursor is None:
             return command
+        if self.alchemy:
+            self.cursor.connect().execute(command)
         else:
             self.cursor.execute(command)
-            return f'table {tablename} created.'
+        return f'table {tablename} created.'
 
     def csv_insert(self, file, updatekey=None, posgres=False, tablename=None, printable=False):
         '''
@@ -158,9 +166,11 @@ class CZ:
         command = command[:-1] + ';'
         if printable or self.cursor is None:
             return command
+        if self.alchemy:
+            self.cursor.connect().execute(command)
         else:
             self.cursor.execute(command)
-            return f'data loaded into table {tablename}.'
+        return f'data loaded into table {tablename}.'
 
     def csvs_into_database(self, file_paths, pkeys=None):
         '''
@@ -199,5 +209,8 @@ class CZ:
             command = '''
             SHOW TABLES
             '''
-        self.cursor.execute(command)
-        return self.cursor.fetchall()
+        if self.alchemy:
+            return self.cursor.connect().execute(command)
+        else:
+            self.cursor.execute(command)
+            return self.cursor.fetchall()
