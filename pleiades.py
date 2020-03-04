@@ -104,6 +104,7 @@ class CZ:
         # pandas is used to impute datatypes.
         df = pd.read_csv(file, nrows=nrows)
         df_dtypes = [x for x in df.dtypes.apply(lambda x: x.name)]
+        df = df.fillna('')
         sql_dtypes = []
         command = f'CREATE TABLE {tablename}('
         # pandas dtypes are converted to sql dtypes to create the table.
@@ -141,6 +142,7 @@ class CZ:
                         primary key.
         '''
         import pandas as pd
+        from re import sub
         if tablename is None:
             from pathlib import Path
             tablename = Path(file).stem
@@ -149,7 +151,11 @@ class CZ:
         cols = ','.join(df.columns)
         command = f'INSERT INTO {tablename}({cols}) VALUES'
         for r in rows:
-            command += f'\n{r},'
+            # Fix null values.
+            pattern = r"([^\w'])nan([^\w'])"
+            replacement = r'\1NULL\2'
+            fixed_r = sub(pattern, replacement, f'{r}')
+            command += f'\n{fixed_r},'
         if updatekey:
             if posgres:
                 command = command[:-1] + \
