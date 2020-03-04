@@ -30,7 +30,7 @@ command = '''
 SELECT *,count(*),SUM(age),AVG(age),MIN(age),MAX(age)
 FROM konosuba
 WHERE isekai = false
-GROUP BY race
+GROUP BY class
 ORDER BY count(*) DESC
 LIMIT 10;
 '''
@@ -43,12 +43,12 @@ print()
 # The second reason to use GROUP BY is to use the HAVING keyword, which is
 # basically WHERE but applied to aggregate group functions.
 command = '''
-SELECT count(*),SUM(age),AVG(age),MIN(age),MAX(age)
+SELECT class,count(*),SUM(age),AVG(age),MIN(age),MAX(age)
 FROM konosuba
 WHERE isekai = false
-GROUP BY race
-HAVING count(*) > 1
-ORDER BY count(*) DESC
+GROUP BY class
+HAVING count(*) = 1
+ORDER BY MAX(age) DESC
 LIMIT 10;
 '''
 cursor.execute(command)

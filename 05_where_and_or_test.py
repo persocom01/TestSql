@@ -50,3 +50,14 @@ df = pd.read_sql_query(command, engine)
 print('age between 18 and 999')
 print(df.head())
 print()
+
+# IS NOT NULL returns non nulls.
+command = '''
+SELECT *
+FROM konosuba
+WHERE class IS NULL;
+'''
+df = pd.read_sql_query(command, engine)
+print('age between 18 and 999')
+print(df)
+print()

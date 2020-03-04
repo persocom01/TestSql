@@ -51,11 +51,13 @@ print('sqlalchemy:')
 print(df)
 print()
 
-# Demonstrates using CASE in select:
+# CASE may be used in statements such as SELECT, DELETE, and UPDATE or in
+# clauses such as SELECT, ORDER BY, and HAVING.
+# Using CASE in SELECT:
 # CASE condition
 #   WHEN value1 THEN new_value
 #   ELSE value2
-# END new_column
+# END new_column_name
 command = '''
 SELECT id,name,class,race,sex,isekai,
 CASE (age >= 18)
