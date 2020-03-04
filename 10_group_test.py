@@ -17,15 +17,15 @@ try:
 except mdb.ProgrammingError:
     print('database does not exist')
 
-# The TOP keyword does not exist in mariadb. LIMIT is used instead.
-# In mysql, TOP is placed between select and the column name.
-# TOP or LIMIT return the topmost valid rows in the table by index, not column
-# values.
-# TOP x PERCENT returns x percentage of rows instead of a fixed number.
-# LIMIT x, y returns x rows from the top after skipping y rows.
-# LIMIT x OFFSET y is alternative syntax.
+# The main reason to use GROUP BY is to apply an aggregate function to the
+# group. The aggregate functions available are:
+# COUNT = len()
+# SUM
+# AVG
+# MIN
+# MAX
 command = '''
-SELECT *,SUM(age)
+SELECT *,count(*),SUM(age),AVG(age),MIN(age),MAX(age)
 FROM konosuba
 WHERE isekai = false
 GROUP BY race

@@ -31,18 +31,24 @@ command = '''
 SELECT *
 FROM konosuba;
 '''
-
 # The mariadb connector returns column indexes.
 cursor.execute(command)
 df = pd.DataFrame(cursor.fetchall())
 print('mariadb base connector:')
-print(df.head())
+print(df)
 print()
 
-# The sqlalchemy with pandas returns column names.
+# Demonstrates the DISTINCT keyword, which eliminates duplicate rows in SELECT.
+# When used on multiple columns, the values in the row must be the same across
+# all columns for the row to be dropped.
+command = '''
+SELECT DISTINCT race,sex
+FROM konosuba;
+'''
+# sqlalchemy with pandas returns column names.
 df = pd.read_sql_query(command, engine)
 print('sqlalchemy:')
-print(df.head())
+print(df)
 print()
 
 # Demonstrates getting column names.
