@@ -17,8 +17,10 @@ try:
 except mdb.ProgrammingError:
     print('database does not exist')
 
-# The main reason to use GROUP BY is to apply an aggregate function to the
-# group. The aggregate functions available are:
+# One reason to use GROUP BY is to apply an aggregate function to the group.
+# Note also that although you may select non aggregate columns, SELECT * will
+# only return the first row in the group.
+# The aggregate functions available are:
 # COUNT = len()
 # SUM
 # AVG
@@ -29,38 +31,29 @@ SELECT *,count(*),SUM(age),AVG(age),MIN(age),MAX(age)
 FROM konosuba
 WHERE isekai = false
 GROUP BY race
+ORDER BY count(*) DESC
 LIMIT 10;
 '''
 cursor.execute(command)
 df = pd.DataFrame(cursor.fetchall())
-print('limit:')
+print('group by:')
 print(df)
 print()
 
+# The second reason to use GROUP BY is to use the HAVING keyword, which is
+# basically WHERE but applied to aggregate group functions.
 command = '''
-SELECT *
+SELECT count(*),SUM(age),AVG(age),MIN(age),MAX(age)
 FROM konosuba
-WHERE age LIKE '1%'
-LIMIT 3, 3;
+WHERE isekai = false
+GROUP BY race
+HAVING count(*) > 1
+ORDER BY count(*) DESC
+LIMIT 10;
 '''
 cursor.execute(command)
 df = pd.DataFrame(cursor.fetchall())
-print('limit with offset:')
-print(df)
-print()
-
-# ORDER can be ASC (small to big) or DESC (big to small).
-# Ordering by mutiple columns will order by the first column then the second.
-command = '''
-SELECT *
-FROM konosuba
-WHERE age LIKE '1%'
-ORDER BY age DESC,name ASC
-LIMIT 5;
-'''
-print('order')
-cursor.execute(command)
-df = pd.DataFrame(cursor.fetchall())
+print('having count > 1:')
 print(df)
 print()
 

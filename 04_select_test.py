@@ -51,6 +51,24 @@ print('sqlalchemy:')
 print(df)
 print()
 
+# Demonstrates using CASE in select:
+# CASE condition
+#   WHEN value1 THEN new_value
+#   ELSE value2
+# END new_column
+command = '''
+SELECT id,name,class,race,sex,isekai,
+CASE (age >= 18)
+    WHEN True THEN 'legal'
+    ELSE 'jailbait'
+END age
+FROM konosuba;
+'''
+df = pd.read_sql_query(command, engine)
+print('case select:')
+print(df)
+print()
+
 # Demonstrates getting column names.
 # Show columns is more flexible, but for a quicker way to show all columns, use
 # DESC konosuba;

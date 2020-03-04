@@ -57,7 +57,49 @@ WHERE age LIKE '1%'
 ORDER BY age DESC,name ASC
 LIMIT 5;
 '''
-print('order')
+print('order:')
+cursor.execute(command)
+df = pd.DataFrame(cursor.fetchall())
+print(df)
+print()
+
+# Demonstrates custom ordering syntax:
+# (CASE col
+# WHEN row_value1 THEN rank1
+# WHEN row_value2 THEN rank2
+# ELSE rank3 END)
+command = '''
+SELECT *
+FROM konosuba
+WHERE sex = 'F'
+ORDER BY
+(CASE race
+    WHEN 'god' THEN 1
+    WHEN 'human' THEN 2
+    WHEN 'lich' THEN 3
+    ELSE 100
+END)
+LIMIT 10;
+'''
+print('custom order:')
+cursor.execute(command)
+df = pd.DataFrame(cursor.fetchall())
+print(df)
+print()
+
+# Without a column name argument case has to take column names as conditions.
+command = '''
+SELECT *
+FROM konosuba
+WHERE sex = 'F'
+ORDER BY
+(CASE
+    WHEN age IS NULL THEN name
+    ELSE age
+END)
+LIMIT 10;
+'''
+print('custom order:')
 cursor.execute(command)
 df = pd.DataFrame(cursor.fetchall())
 print(df)
