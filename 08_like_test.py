@@ -2,7 +2,6 @@
 from sqlalchemy import create_engine
 import json
 import mariadb as mdb
-import pleiades as ple
 import pandas as pd
 
 engine = create_engine('mysql+pymysql://root:@localhost/testDB')
