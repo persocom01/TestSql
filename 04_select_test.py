@@ -51,6 +51,7 @@ print('sqlalchemy:')
 print(df)
 print()
 
+# Demonstrates renaming columns during select and the use of CASE.
 # CASE may be used in statements such as SELECT, DELETE, and UPDATE or in
 # clauses such as SELECT, ORDER BY, and HAVING.
 # Using CASE in SELECT:
@@ -59,7 +60,7 @@ print()
 #   ELSE value2
 # END new_column_name
 command = '''
-SELECT id,name,class,race,sex,isekai,
+SELECT id,name,class as 'job',race,sex,isekai,
 CASE (age >= 18)
     WHEN True THEN 'legal'
     ELSE 'jailbait'
