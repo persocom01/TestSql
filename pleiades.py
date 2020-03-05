@@ -55,7 +55,7 @@ class CZ:
         if printable or self.cursor is None:
             return command
         if self.alchemy:
-            return self.cursor.connect().execute(command)
+            return self.cursor.connect().execute(command).fetchone()[0]
         else:
             self.cursor.execute(command)
             return self.cursor.fetchone()[0]
@@ -227,7 +227,9 @@ class CZ:
         else:
             command = f"SHOW COLUMNS FROM {table};"
         if self.alchemy:
-            return self.cursor.connect().execute(command)
+            import pandas as pd
+            df = pd.read_sql_query(command, self.cursor)
+            return df
         else:
             self.cursor.execute(command)
             return self.cursor.fetchall()
@@ -240,7 +242,9 @@ class CZ:
             SHOW TABLES
             '''
         if self.alchemy:
-            return self.cursor.connect().execute(command)
+            import pandas as pd
+            df = pd.read_sql_query(command, self.cursor)
+            return df
         else:
             self.cursor.execute(command)
             return self.cursor.fetchall()

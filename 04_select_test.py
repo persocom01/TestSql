@@ -1,12 +1,17 @@
 # Demonstrates selection of data from database tables.
 # Contrasts using sql sqlalchemy vs mariadb base connector.
+from sqlalchemy import create_engine
 import mariadb as mdb
 import json
 import pandas as pd
-from sqlalchemy import create_engine
 
 pd.set_option('display.max_columns', 100)
 pd.set_option('display.max_rows', 300)
+
+# sqlalchemy's engine strings are written in the form:
+# dialect[+driver]://user:password@host/dbname[?key=value..]
+engine = create_engine('mysql+pymysql://root:@localhost/testDB')
+con = engine.connect()
 
 dbname = 'testDB'
 cfg_path = './server.cfg'
@@ -21,11 +26,6 @@ try:
     cursor.execute(command)
 except mdb.ProgrammingError:
     print('database does not exist')
-
-# sqlalchemy's engine strings are written in the form:
-# dialect[+driver]://user:password@host/dbname[?key=value..]
-engine = create_engine('mysql+pymysql://root:@localhost/testDB')
-con = engine.connect()
 
 command = '''
 SELECT *
