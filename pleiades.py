@@ -39,7 +39,8 @@ class CZ:
                 df = pd.read_sql_query(command, self.cursor)
                 return df
             else:
-                return self.cursor.execute(command)
+                self.cursor.execute(command)
+                return self.cursor.fetchall()
 
         def where(self, condition):
             command = self.command
@@ -140,6 +141,8 @@ class CZ:
             updatekey   given the table's primary key, the function update all
                         values in the table with those from the file except the
                         primary key.
+            printable   returns the SQL command that would have been executed
+                        as a printable string.
         '''
         import pandas as pd
         from re import sub
@@ -178,15 +181,25 @@ class CZ:
             self.cursor.execute(command)
         return f'data loaded into table {tablename}.'
 
-    def csvs_into_database(self, file_paths, pkeys=None):
+    def csvs_into_database(self, file_paths, pkeys=None, printable=False):
         '''
         Convenience function that uploads a folder of files into a database.
-        Primary keys must be given as a list in file alphabetical order. Note
-        that this order can be different from atom file order if _ is used. To
-        skip a file, pass '' as a list item.
+        params:
+            pkeys       accepts a list of primary keys to be assigned to each
+                        table to be created as a list. Must be given in file
+                        alphabetical order as the tables will be created in
+                        alphabetical order. The list can be incomplete, but any
+                        table not assigned a primary key should have '' as its
+                        corresponding list item. Note that this alphabetical
+                        order can be different from atom file order if _ is
+                        used.
+            printable   returns a printable of files that would be be inserted
+                        into the database.
         '''
         import glob
         files = glob.glob(file_paths)
+        if printable:
+            return files
         has_incomplete_pkeys = False
         if pkeys:
             if isinstance(pkeys, str):
@@ -207,6 +220,17 @@ class CZ:
         if has_incomplete_pkeys:
             return_statement = 'not all tables have primary keys.\n' + return_statement
         return return_statement
+
+    def show_columns(self, table, all=False):
+        if all:
+            command = f"SHOW ALL COLUMNS FROM {table};"
+        else:
+            command = f"SHOW COLUMNS FROM {table};"
+        if self.alchemy:
+            return self.cursor.connect().execute(command)
+        else:
+            self.cursor.execute(command)
+            return self.cursor.fetchall()
 
     def show_tables(self, all=False):
         if all:
