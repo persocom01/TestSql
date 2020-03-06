@@ -29,7 +29,8 @@ except mdb.ProgrammingError:
 
 command = '''
 SELECT *
-FROM konosuba;
+FROM konosuba
+;
 '''
 # The mariadb connector returns column indexes.
 cursor.execute(command)
@@ -43,11 +44,24 @@ print()
 # all columns for the row to be dropped.
 command = '''
 SELECT DISTINCT race,sex
-FROM konosuba;
+FROM konosuba
+;
 '''
 # sqlalchemy with pandas returns column names.
 df = pd.read_sql_query(command, engine)
-print('sqlalchemy:')
+print('sqlalchemy + distinct:')
+print(df)
+print()
+
+# The LEFT(colname, n) keyword returns the leftmost n characters of each row in
+# a column.
+command = '''
+SELECT name,class,LEFT(race, 4)
+FROM konosuba
+;
+'''
+df = pd.read_sql_query(command, engine)
+print('select left:')
 print(df)
 print()
 
@@ -65,7 +79,8 @@ CASE (age >= 18)
     WHEN True THEN 'legal'
     ELSE 'jailbait'
 END age
-FROM konosuba;
+FROM konosuba
+;
 '''
 df = pd.read_sql_query(command, engine)
 print('case select:')
@@ -76,7 +91,8 @@ print()
 # Show columns is more flexible, but for a quicker way to show all columns, use
 # DESC konosuba;
 command = '''
-SHOW COLUMNS FROM konosuba;
+SHOW COLUMNS FROM konosuba
+;
 '''
 
 # mariadb and sqlalchemy are the same in this case. However, sqlalchemy has

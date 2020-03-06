@@ -44,14 +44,12 @@ class CZ:
 
         def where(self, condition):
             command = self.command
-            command = command[:-1] + f'\nWHERE {condition};'
+            command = command[:-1] + f'WHERE {condition}\n;'
             self.command = command
             return self
 
     def get_db(self, printable=False):
-        command = '''
-        SELECT DATABASE()
-        '''
+        command = 'SELECT DATABASE();'
         if printable or self.cursor is None:
             return command
         if self.alchemy:
@@ -62,7 +60,6 @@ class CZ:
 
     def use_db(self, db, printable=False):
         command = f'USE {db};'
-        self.cursor.execute(command)
         if printable or self.cursor is None:
             return command
         if self.alchemy:
@@ -71,7 +68,7 @@ class CZ:
             self.cursor.execute(command)
         return f'database {db} selected.'
 
-    def unuse_db(self, printable=False, _db='2arnbzheo2j0gygk'):
+    def unuse_db(self, printable=False, _db='2arnbzheo2j0gygkteu9ltxtabmzldvb'):
         command = f'CREATE DATABASE {_db};'
         command += f'\nUSE {_db};'
         command += f'\nDROP DATABASE {_db};'
@@ -93,7 +90,7 @@ class CZ:
             command = command[:-1]
         else:
             command += f'*'
-        command += f'\nFROM {table};'
+        command += f'\nFROM {table}\n;'
         return self.SQL(command, cursor=self.cursor, alchemy=self.alchemy)
 
     def csv_table(self, file, pkey=None, printable=False, nrows=100):
@@ -107,7 +104,7 @@ class CZ:
         df_dtypes = [x for x in df.dtypes.apply(lambda x: x.name)]
         df = df.fillna('')
         sql_dtypes = []
-        command = f'CREATE TABLE {tablename}('
+        command = f'CREATE TABLE {tablename}(\n'
         # pandas dtypes are converted to sql dtypes to create the table.
         for i, col in enumerate(df.columns):
             if df_dtypes[i] in self.dtype_dic:
