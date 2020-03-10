@@ -75,10 +75,10 @@ print()
 # END new_column_name
 command = '''
 SELECT id,name,class as 'job',race,sex,isekai,
-CASE (age >= 18)
-    WHEN True THEN 'legal'
-    ELSE 'jailbait'
-END age
+    CASE (age >= 18)
+        WHEN True THEN 'legal'
+        ELSE 'jailbait'
+    END age
 FROM konosuba
 ;
 '''

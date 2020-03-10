@@ -31,7 +31,7 @@ print()
 command = '''
 SELECT
     c.name as 'client_name'
-    ,DATE_FORMAT(clock_in_time, '%%Y-%%m') as 'month'
+    ,DATE_FORMAT(STR_TO_DATE(clock_in_time, '%%m/%%d/%%y %%h:%%i %%p'), '%%Y-%%m') as 'month'
     ,COUNT(*) as 'total_timesheet_entries'
 FROM client c
 INNER JOIN staff_request sr ON sr.client_id = c.id
