@@ -1,4 +1,5 @@
-# Workmate Data Analyst take home problem.
+# Workmate Data Analyst take home problem. The given data are found in the csv
+# files client, partner, staff_request and timesheet_entry in the data folder.
 from sqlalchemy import create_engine
 import pandas as pd
 import pleiades as ple
