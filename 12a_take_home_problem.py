@@ -29,6 +29,11 @@ print(df)
 print()
 
 # Problem 2.
+# As the data was not loaded into the table as datetime format, there is a need
+# to convert the str to datetime format using STR_TO_DATE() before returning it
+# in the desired DATE_FORMAT(). Note the double %% is due to the need to escape
+# % with another % in sqlalchemy. The date format codes can be found here:
+# https://www.w3schools.com/sql/func_mysql_str_to_date.asp
 command = '''
 SELECT
     c.name as 'client_name'

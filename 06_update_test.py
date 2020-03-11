@@ -7,6 +7,7 @@ con = engine.connect()
 
 # Demonstrates the basic update datement.
 # If where is not specified all rows will be updated with the same value.
+# This can be used to copy a column onto another using SET col2 = col1.
 command = '''
 UPDATE konosuba
 SET age = 17000
