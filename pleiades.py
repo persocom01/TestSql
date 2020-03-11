@@ -129,15 +129,17 @@ class CZ:
             self.cursor.execute(command)
         return f'table {tablename} created.'
 
-    def csv_insert(self, file, updatekey=None, posgres=False, tablename=None, printable=False):
+    def csv_insert(self, file, updatekey=None, postgre=False, tablename=None, printable=False):
         '''
         Convenience function that uploads file data into a premade database
         table.
 
         params:
-            updatekey   given the table's primary key, the function update all
+            updatekey   given the table's primary key, the function updates all
                         values in the table with those from the file except the
                         primary key.
+            postgre     set to True if working on a PostgreSQL database.
+            tablename   if None, tablename = filename.
             printable   returns the SQL command that would have been executed
                         as a printable string.
         '''
@@ -157,7 +159,7 @@ class CZ:
             fixed_r = sub(pattern, replacement, f'{r}')
             command += f'\n{fixed_r},'
         if updatekey:
-            if posgres:
+            if postgre:
                 command = command[:-1] + \
                     f'\nON CONFLICT ({updatekey}) DO UPDATE SET'
                 for c in df.columns:

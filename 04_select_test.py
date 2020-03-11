@@ -43,7 +43,9 @@ print()
 # When used on multiple columns, the values in the row must be the same across
 # all columns for the row to be dropped.
 command = '''
-SELECT DISTINCT race,sex
+SELECT
+    DISTINCT race
+    ,sex
 FROM konosuba
 ;
 '''
@@ -56,7 +58,10 @@ print()
 # The LEFT(colname, n) keyword returns the leftmost n characters of each row in
 # a column.
 command = '''
-SELECT name,class,LEFT(race, 4)
+SELECT
+    name
+    ,class
+    ,LEFT(race, 4)
 FROM konosuba
 ;
 '''
@@ -74,8 +79,14 @@ print()
 #   ELSE value2
 # END new_column_name
 command = '''
-SELECT id,name,class as 'job',race,sex,isekai,
-    CASE (age >= 18)
+SELECT
+    id
+    ,name
+    ,class as 'job'
+    ,race
+    ,sex
+    ,isekai
+    ,CASE (age >= 18)
         WHEN True THEN 'legal'
         ELSE 'jailbait'
     END age
