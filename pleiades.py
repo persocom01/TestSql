@@ -13,11 +13,12 @@ class CZ:
             'datetime64': 'DATETIME'
         }
         self.alchemy = alchemy
+        self.tabspace = 4
 
     class SQL:
         '''
-        The Select object allows a select statement to be extended with methods
-        like where before being executed with .ex()
+        The SQL object allows a SQL statement to be extended with methods like
+        where() before being executed with .ex()
 
         params:
             alchemy     when set to true, assumes that cursor is an sqlalchemy
@@ -25,10 +26,11 @@ class CZ:
                         returned as a DataFrame.
         '''
 
-        def __init__(self, command, cursor=None, alchemy=False):
+        def __init__(self, command, cursor=None, alchemy=False, tabspace=4):
             self.alchemy = alchemy
             self.command = command
             self.cursor = cursor
+            self.tabspace = tabspace
 
         def ex(self, p=False):
             command = self.command
@@ -81,16 +83,19 @@ class CZ:
         return 'database deselected.'
 
     def select_from(self, table, cols=None):
+        tab = ' ' * self.tabspace
         command = 'SELECT '
         if cols:
             if isinstance(cols, str):
-                cols = [cols]
-            for col in cols:
-                command += f'{col},'
-            command = command[:-1]
+                command += f'{cols}\n'
+            else:
+                command = command[:-1] + f'\n{tab}'
+                for col in cols:
+                    command += f'{col}\n{tab},'
+                command = command[:-(self.tabspace+1)]
         else:
-            command += f'*'
-        command += f'\nFROM {table}\n;'
+            command += f'*\n'
+        command += f'FROM {table}\n;'
         return self.SQL(command, cursor=self.cursor, alchemy=self.alchemy)
 
     def csv_table(self, file, pkey=None, printable=False, nrows=100):
@@ -104,7 +109,8 @@ class CZ:
         df_dtypes = [x for x in df.dtypes.apply(lambda x: x.name)]
         df = df.fillna('')
         sql_dtypes = []
-        command = f'CREATE TABLE {tablename}(\n'
+        tab = ' ' * self.tabspace
+        command = f'CREATE TABLE {tablename}(\n{tab}'
         # pandas dtypes are converted to sql dtypes to create the table.
         for i, col in enumerate(df.columns):
             if df_dtypes[i] in self.dtype_dic:
@@ -114,13 +120,13 @@ class CZ:
                 char_length = ceil(df[col].map(len).max() / 50) * 50
                 sql_dtypes.append(f'VARCHAR({char_length})')
             if pkey and col == pkey:
-                command = command + f'\n{col} {sql_dtypes[i]} NOT NULL,'
+                command = command + \
+                    f'{col} {sql_dtypes[i]} NOT NULL\n{tab},'
             else:
-                command = command + f'\n{col} {sql_dtypes[i]},'
+                command = command + f'{col} {sql_dtypes[i]}\n{tab},'
         if pkey:
-            command += f'\nPRIMARY KEY ({pkey})\n);'
-        else:
-            command = command[:-1] + '\n);'
+            command += f'PRIMARY KEY ({pkey})\n{tab},'
+        command = command[:-(self.tabspace+1)] + ');'
         if printable or self.cursor is None:
             return command
         if self.alchemy:
@@ -151,27 +157,28 @@ class CZ:
         df = pd.read_csv(file)
         rows = [x for x in df.itertuples(index=False, name=None)]
         cols = ','.join(df.columns)
-        command = f'INSERT INTO {tablename}({cols}) VALUES'
+        tab = ' ' * self.tabspace
+        command = f'INSERT INTO {tablename}({cols})\nVALUES\n{tab}'
         for r in rows:
             # Fix null values.
             pattern = r"([^\w'])nan([^\w'])"
             replacement = r'\1NULL\2'
             fixed_r = sub(pattern, replacement, f'{r}')
-            command += f'\n{fixed_r},'
+            command += f'{fixed_r}\n{tab},'
         if updatekey:
             if postgre:
-                command = command[:-1] + \
-                    f'\nON CONFLICT ({updatekey}) DO UPDATE SET'
+                command = command[:-(self.tabspace+1)] + \
+                    f'ON CONFLICT ({updatekey}) DO UPDATE SET\n{tab}'
                 for c in df.columns:
                     if c != updatekey:
-                        command += f'\n{c}=excluded.{c},'
+                        command += f'{c}=excluded.{c}\n{tab},'
             else:
-                command = command[:-1] + \
-                    '\nON DUPLICATE KEY UPDATE'
+                command = command[:-(self.tabspace+1)] + \
+                    f'ON DUPLICATE KEY UPDATE\n{tab}'
                 for c in df.columns:
                     if c != updatekey:
-                        command += f'\n{c}=VALUES({c}),'
-        command = command[:-1] + ';'
+                        command += f'{c}=VALUES({c})\n{tab},'
+        command = command[:-(self.tabspace+1)] + ';'
         if printable or self.cursor is None:
             return command
         if self.alchemy:
@@ -235,11 +242,9 @@ class CZ:
 
     def show_tables(self, all=False):
         if all:
-            command = f"SELECT TABLE_NAME FROM INFORMATION_SCHEMA.TABLES WHERE TABLE_TYPE='BASE TABLE'"
+            command = f"SELECT TABLE_NAME FROM INFORMATION_SCHEMA.TABLES WHERE TABLE_TYPE='BASE TABLE';"
         else:
-            command = '''
-            SHOW TABLES
-            '''
+            command = 'SHOW TABLES;'
         if self.alchemy:
             import pandas as pd
             df = pd.read_sql_query(command, self.cursor)
