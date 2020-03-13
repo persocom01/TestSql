@@ -37,7 +37,15 @@ print(cz.show_tables())
 
 # Drop tables.
 command = '''
-DROP TABLES client,konosuba,partner,quest_map,quest,staff_request,timesheet_entry
+DROP TABLES
+    client
+    ,konosuba
+    ,partner
+    ,quest_map
+    ,quest
+    ,staff_request
+    ,timesheet_entry
+;
 '''
 # cursor.execute(command)
 print(cz.show_tables())

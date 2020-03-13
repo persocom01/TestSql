@@ -42,15 +42,7 @@ cz = ple.CZ(cursor)
 command = '''
 ALTER TABLE quest_map
 ADD CONSTRAINT fk_qm_qid
-    FOREIGN KEY(quest_id)
-        REFERENCES quest(id)
-        ON DELETE restrict
-        ON UPDATE restrict
-,ADD CONSTRAINT fk_qm_cid
-    FOREIGN KEY(char_id)
-        REFERENCES konosuba(id)
-        ON DELETE restrict
-        ON UPDATE cascade
+
 ;
 '''
 cursor.execute(command)
