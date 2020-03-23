@@ -125,7 +125,7 @@ class CZ:
             else:
                 command = command + f'{col} {sql_dtypes[i]}\n{tab},'
         if pkey:
-            command += f'PRIMARY KEY ({pkey})\n{tab},'
+            command += f'PRIMARY KEY({pkey})\n{tab},'
         command = command[:-(self.tabspace+1)] + ');'
         if printable or self.cursor is None:
             return command

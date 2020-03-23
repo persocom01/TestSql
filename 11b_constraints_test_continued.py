@@ -26,19 +26,21 @@ except mdb.ProgrammingError:
 
 cz = ple.CZ(cursor)
 
-# FOREIGN KEY is a CONSTRAINT that enforces referential integrety between
+# FOREIGN KEY is a CONSTRAINT that enforces referential integrity between
 # tables. The table with the FOREIGN KEY is the child and the reference is the
 # parent. The FOREIGN KEY of the child typically references the PRIMARY KEY of
 # the parent. Aside from referencing, two options, ON DELETE and ON UPDATE can
 # be set to determine what happens to the FOREIGN KEY when the parent is
 # deleted or updated. The options are CASCADE, SET NULL and RESTRICT.
-# CASCADE sets the child equal to whatever the parent is set to. If ON UPDATE
-# is set to cascade, an error is returned when you try to delete the parent
-# if ON DELETE is not set. (default restrict)
+# The options are set to RESTRICT by default, which makes it impossible for the
+# parent to be deleted or updated as long as the child exists.
+# CASCADE sets the child equal to whatever the parent is set to. Trying to
+# delete the parent when ON UPDATE is set to cascade will still return an error
+# because ON DELETE will override ON UPDATE for delete.
 # SET NULL sets the child to NULL.
-# RESTRICT makes it impossible for the parent to be deleted or updated as long
-# as the child exists. restrict is the default.
-# FOREIGN KEY can be set at table creation or after using ALTER TABLE.
+# Unlike UNIQUE, FOREIGN KEY can only be be set at table creation after column
+# datatypes are defined or after using ALTER TABLE and practically the same
+# syntax.
 command = '''
 ALTER TABLE quest_map
 ADD CONSTRAINT fk_qm_qid
@@ -59,6 +61,7 @@ print('foreign key:')
 print(df)
 print()
 
+# Demonstrates the effect of cascade.
 command = '''
 UPDATE konosuba
 SET id = 999
@@ -83,7 +86,7 @@ print()
 
 # Demonstrates dropping of a foreign key. Note that the key property of the
 # column will still remain MUL after removal of the constraint. It is unknown
-# if this has any negative impact.
+# if this has any impact.
 command = '''
 ALTER TABLE quest_map
 DROP CONSTRAINT fk_qm_qid

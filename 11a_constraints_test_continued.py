@@ -31,6 +31,10 @@ cz = ple.CZ(cursor)
 # a set of multiple columns in cases of mapping tables. Such keys are known as
 # composite primary keys. There is some debate whether each table should just
 # have a single column primary key.
+# PRIMARY KEY can be set at table creation  or after in the same manner as
+# UNIQUE. However, in the case of PRIMARY KEY, where is no need to bother with
+# custom CONSTRAINT names since PRIMARY KEY can easily be removed without
+# knowing its CONSTRAINT name.
 command = '''
 ALTER TABLE quest_map
 ADD PRIMARY KEY(quest_id,char_id);
@@ -41,6 +45,7 @@ print('primary key:')
 print(df)
 print()
 
+# Demonstrates dropping of PRIMARY KEY.
 command = '''
 ALTER TABLE quest_map
 DROP PRIMARY KEY;
@@ -56,7 +61,7 @@ cursor.execute(command)
 # FOREIGN KEY. AUTO_INCREMENT is used on mysql and mariadb. oracle, PostgreSQL
 # and sql server use variations of the IDENTITY instead.
 # To remove AUTO_INCREMENT, you need to first use ALTER TABLE to DROP PRIMARY
-# KEY before CHANGE or MODIFY on the datatype.
+# KEY before using ALTER TABLE CHANGE or MODIFY on the datatype.
 column = 'id'
 tablename = 'konosuba'
 for i, col in enumerate(cz.show_columns(tablename)):

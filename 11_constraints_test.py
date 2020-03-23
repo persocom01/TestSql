@@ -29,43 +29,57 @@ cz = ple.CZ(cursor)
 # UNIQUE is similar to PRIMARY KEY in that it only allows unique values in a
 # column. However, UNIQUE allows a column to have null values, unlike PRIMARY
 # KEY. Furthermore, in oracle and sql server, UNIQUE cannot have multiple null
-# values. UNIQUE columns can be set during table creation or added as column
-# constraints afterward. The CONSTRAINT keyword can be used to set a custom
-# constraint name during table creation or when added as a column property.
-# Without which,the database will automatically assign it a generated name.
+# values.
+# UNIQUE can be set at table creation in two ways: while defining column
+# datatypes or after. If set after, the CONSTRAINT keyword can be used to set a
+# custom constraint name. Without a custom constraint name, the database will
+# automatically assign it a generated name.
 # This may be fine in most cases, but it would be troublesome if there is a
 # need to drop constraint in future.
 # CONSTRAINT cannot be used when adding a column using ALTER TABLE. However,
 # the contraint with a custom name can simply be added to the column after it
 # is created.
 command = '''
-ALTER TABLE konosuba
-ADD email VARCHAR(50) UNIQUE;
+CREATE TABLE testtable(
+
+    id int UNIQUE,
+
+    id2 int,
+    UNIQUE(id2),
+
+    id3 int,
+    CONSTRAINT u_tt_id3
+    UNIQUE(id3)
+);
 '''
 cursor.execute(command)
-# Demonstrates using CONSTRAINT to add UNIQUE to the name column. It is
-# possible to add CONSTRAINT to a set of columns instead of just one. This
-# functions in a manner similar to  composite primary keys.
-command = '''
-ALTER TABLE konosuba
-ADD CONSTRAINT u_k_name
-UNIQUE(name);
-'''
-cursor.execute(command)
-df = pd.DataFrame(cz.show_columns('konosuba'))
+df = pd.DataFrame(cz.show_columns('testtable'))
 print('unique:')
 print(df)
 print()
 
 # Deleting a CONSTRAINT is easy so long as its name is known.
 command = '''
-ALTER TABLE konosuba
-DROP CONSTRAINT u_k_name;
+ALTER TABLE testtable
+DROP CONSTRAINT u_tt_id3
+;
 '''
+# Demonstrates using ALTER TABLE to add a CONSTRAINT to a table. It is possible
+# to add CONSTRAINT to a set of columns instead of just one. This functions in
+# a manner similar to  composite primary keys.
+# command = '''
+# ALTER TABLE testtable
+# ADD CONSTRAINT u_tt_id3
+#     UNIQUE(name);
+# '''
 cursor.execute(command)
+df = pd.DataFrame(cz.show_columns('testtable'))
+print('remove unique:')
+print(df)
+print()
+
 command = '''
-ALTER TABLE konosuba
-DROP COLUMN email;
+DROP TABLES testtable;
 '''
 cursor.execute(command)
 
@@ -83,7 +97,7 @@ cursor.execute(command)
 # troublesome. It appears that existing NULL values will be converted to 0 for
 # numbers, '' for strings if they are not imputed with non-NULL values before
 # changing the column datatype. This may not be true if sql is set to strict
-# mode. However, it is recommended to impute NULLS manurally before adding
+# mode. However, it is recommended to impute NULLS manually before adding
 # the NOT NULLS constraint to a column using:
 # UPDATE konosuba
 # SET age = 0

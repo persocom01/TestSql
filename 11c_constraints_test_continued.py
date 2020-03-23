@@ -26,6 +26,10 @@ except mdb.ProgrammingError:
 
 cz = ple.CZ(cursor)
 
+# CHECK is a CONSTRAINT that allows for data validation of sql tables by
+# checking if the data fulfils certain criteria.
+# Unlike
+
 # FOREIGN KEY is a CONSTRAINT that enforces referential integrety between
 # tables. The table with the FOREIGN KEY is the child and the reference is the
 # parent. The FOREIGN KEY of the child typically references the PRIMARY KEY of
@@ -39,53 +43,56 @@ cz = ple.CZ(cursor)
 # RESTRICT makes it impossible for the parent to be deleted or updated as long
 # as the child exists. restrict is the default.
 # FOREIGN KEY can be set at table creation or after using ALTER TABLE.
+# command = '''
+# alter table konosuba
+# add constraint valid_age
+# check(age >= 0);
+# '''
 command = '''
-ALTER TABLE quest_map
-ADD CONSTRAINT fk_qm_qid
-
-;
+ALTER TABLE konosuba
+DROP CONSTRAINT valid_age;
 '''
 cursor.execute(command)
-df = pd.DataFrame(cz.show_columns('quest_map'))
+df = pd.DataFrame(cz.show_columns('konosuba'))
 print('foreign key:')
 print(df)
 print()
-
-command = '''
-UPDATE konosuba
-SET id = 999
-WHERE id = 1;
-'''
-cursor.execute(command)
-df = pd.DataFrame(cz.select_from('quest_map').ex())
-print('cascade:')
-print(df)
-print()
-
-command = '''
-UPDATE konosuba
-SET id = 1
-WHERE id = 999;
-'''
-cursor.execute(command)
-df = pd.DataFrame(cz.select_from('quest_map').ex())
-print('undo cascade:')
-print(df)
-print()
-
-# Demonstrates dropping of a foreign key. Note that the key property of the
-# column will still remain MUL after removal of the constraint. It is unknown
-# if this has any negative impact.
-command = '''
-ALTER TABLE quest_map
-DROP CONSTRAINT fk_qm_qid
-,DROP CONSTRAINT fk_qm_cid
-;
-'''
-cursor.execute(command)
-df = pd.DataFrame(cz.show_columns('quest_map'))
-print(df)
-print()
+#
+# command = '''
+# UPDATE konosuba
+# SET id = 999
+# WHERE id = 1;
+# '''
+# cursor.execute(command)
+# df = pd.DataFrame(cz.select_from('quest_map').ex())
+# print('cascade:')
+# print(df)
+# print()
+#
+# command = '''
+# UPDATE konosuba
+# SET id = 1
+# WHERE id = 999;
+# '''
+# cursor.execute(command)
+# df = pd.DataFrame(cz.select_from('quest_map').ex())
+# print('undo cascade:')
+# print(df)
+# print()
+#
+# # Demonstrates dropping of a foreign key. Note that the key property of the
+# # column will still remain MUL after removal of the constraint. It is unknown
+# # if this has any negative impact.
+# command = '''
+# ALTER TABLE quest_map
+# DROP CONSTRAINT fk_qm_qid
+# ,DROP CONSTRAINT fk_qm_cid
+# ;
+# '''
+# cursor.execute(command)
+# df = pd.DataFrame(cz.show_columns('quest_map'))
+# print(df)
+# print()
 
 cursor.close()
 db.commit()
