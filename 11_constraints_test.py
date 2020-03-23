@@ -35,7 +35,7 @@ cz = ple.CZ(cursor)
 # custom constraint name. Without a custom constraint name, the database will
 # automatically assign it a generated name.
 # This may be fine in most cases, but it would be troublesome if there is a
-# need to drop constraint in future.
+# need to drop the constraint in future.
 # CONSTRAINT cannot be used when adding a column using ALTER TABLE. However,
 # the contraint with a custom name can simply be added to the column after it
 # is created.
@@ -50,6 +50,7 @@ CREATE TABLE testtable(
     id3 int,
     CONSTRAINT u_tt_id3
     UNIQUE(id3)
+
 );
 '''
 cursor.execute(command)
@@ -64,19 +65,21 @@ ALTER TABLE testtable
 DROP CONSTRAINT u_tt_id3
 ;
 '''
-# Demonstrates using ALTER TABLE to add a CONSTRAINT to a table. It is possible
-# to add CONSTRAINT to a set of columns instead of just one. This functions in
-# a manner similar to  composite primary keys.
-# command = '''
-# ALTER TABLE testtable
-# ADD CONSTRAINT u_tt_id3
-#     UNIQUE(name);
-# '''
 cursor.execute(command)
 df = pd.DataFrame(cz.show_columns('testtable'))
 print('remove unique:')
 print(df)
 print()
+
+# Demonstrates using ALTER TABLE to add a CONSTRAINT to a table. It is possible
+# to add CONSTRAINT to a set of columns instead of just one. This functions in
+# a manner similar to  composite primary keys.
+command = '''
+ALTER TABLE testtable
+ADD CONSTRAINT u_tt_id3
+    UNIQUE(id3);
+'''
+cursor.execute(command)
 
 command = '''
 DROP TABLES testtable;

@@ -28,6 +28,11 @@ print('create table:')
 print(cz.csv_table('./data/client.csv', 'id', printable=True))
 print()
 
+# Demonstrates writing data to a table.
+print('insert data:')
+print(cz.csv_insert('./data/client.csv', printable=True))
+print()
+
 # Convenience function to load files into database.
 file_paths = './data/*.csv'
 print(cz.csvs_into_database(file_paths, [

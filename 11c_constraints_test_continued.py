@@ -28,71 +28,61 @@ cz = ple.CZ(cursor)
 
 # CHECK is a CONSTRAINT that allows for data validation of sql tables by
 # checking if the data fulfils certain criteria.
-# Unlike
-
-# FOREIGN KEY is a CONSTRAINT that enforces referential integrety between
-# tables. The table with the FOREIGN KEY is the child and the reference is the
-# parent. The FOREIGN KEY of the child typically references the PRIMARY KEY of
-# the parent. Aside from referencing, two options, ON DELETE and ON UPDATE can
-# be set to determine what happens to the FOREIGN KEY when the parent is
-# deleted or updated. The options are CASCADE, SET NULL and RESTRICT.
-# CASCADE sets the child equal to whatever the parent is set to. If ON UPDATE
-# is set to cascade, an error is returned when you try to delete the parent
-# if ON DELETE is not set. (default restrict)
-# SET NULL sets the child to NULL.
-# RESTRICT makes it impossible for the parent to be deleted or updated as long
-# as the child exists. restrict is the default.
-# FOREIGN KEY can be set at table creation or after using ALTER TABLE.
-# command = '''
-# alter table konosuba
-# add constraint valid_age
-# check(age >= 0);
-# '''
+# Like UNIQUE, it can be added during table creation while defining column
+# datatypes or after. It can also be added to columns using ALTER TABLE.
+# After CHECK has been set, an error will be returned if a value that does not
+# meet the criteria is added or updated to the column. The CHECK criteria does
+# not have to be the same column as the column whose datatype was just defined.
+# However, it makes things confusing, and it still works as if you set CHECK
+# on the column defined in the criteria anyway.
+# If attempting to set CHECK on an existing table, and error will be returned
+# if any existing value in the column does not meet the criteria.
 command = '''
-ALTER TABLE konosuba
-DROP CONSTRAINT valid_age;
+CREATE TABLE testtable(
+
+    id int CHECK(id > 0 and id < 100),
+
+    id2 int,
+    CHECK(id2 > 2),
+
+    id3 int,
+    CONSTRAINT c_tt_id3
+    CHECK(id3 > 3)
+);
 '''
 cursor.execute(command)
-df = pd.DataFrame(cz.show_columns('konosuba'))
-print('foreign key:')
+df = pd.DataFrame(cz.show_columns('testtable'))
+print('check:')
 print(df)
 print()
-#
-# command = '''
-# UPDATE konosuba
-# SET id = 999
-# WHERE id = 1;
-# '''
-# cursor.execute(command)
-# df = pd.DataFrame(cz.select_from('quest_map').ex())
-# print('cascade:')
-# print(df)
-# print()
-#
-# command = '''
-# UPDATE konosuba
-# SET id = 1
-# WHERE id = 999;
-# '''
-# cursor.execute(command)
-# df = pd.DataFrame(cz.select_from('quest_map').ex())
-# print('undo cascade:')
-# print(df)
-# print()
-#
-# # Demonstrates dropping of a foreign key. Note that the key property of the
-# # column will still remain MUL after removal of the constraint. It is unknown
-# # if this has any negative impact.
-# command = '''
-# ALTER TABLE quest_map
-# DROP CONSTRAINT fk_qm_qid
-# ,DROP CONSTRAINT fk_qm_cid
-# ;
-# '''
-# cursor.execute(command)
-# df = pd.DataFrame(cz.show_columns('quest_map'))
-# print(df)
-# print()
+
+# Deleting a CONSTRAINT is easy so long as its name is known.
+command = '''
+ALTER TABLE testtable
+DROP CONSTRAINT c_tt_id3
+;
+'''
+cursor.execute(command)
+# Demonstrates using ALTER TABLE to add CHECK CONSTRAINT to a table.
+command = '''
+ALTER TABLE testtable
+ADD CONSTRAINT c_tt_id3
+CHECK(id3 > 3)
+;
+'''
+cursor.execute(command)
+
+insert_value = 200
+command = f'INSERT INTO testtable(id) VALUES({insert_value});'
+try:
+    cursor.execute(command)
+except mdb.IntegrityError:
+    print('mariadb.IntegrityError: CONSTRAINT `testtable.id` failed for `testdb`.`testtable`')
+
+command = '''
+DROP TABLES testtable;
+'''
+cursor.execute(command)
 
 cursor.close()
 db.commit()
