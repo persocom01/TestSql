@@ -56,35 +56,6 @@ print('check:')
 print(df)
 print()
 
-# Deleting a CONSTRAINT is easy so long as its name is known.
-command = '''
-ALTER TABLE testtable
-DROP CONSTRAINT c_tt_id3
-;
-'''
-cursor.execute(command)
-# Demonstrates using ALTER TABLE to add CHECK CONSTRAINT to a table.
-command = '''
-ALTER TABLE testtable
-ADD CONSTRAINT c_tt_id3
-CHECK(id3 > 3)
-;
-'''
-cursor.execute(command)
-
-# Test criteria here.
-insert_value = 200
-command = f'INSERT INTO testtable(id) VALUES({insert_value});'
-try:
-    cursor.execute(command)
-except mdb.IntegrityError:
-    print('mariadb.IntegrityError: CONSTRAINT `testtable.id` failed for `testdb`.`testtable`')
-
-command = '''
-DROP TABLES testtable;
-'''
-cursor.execute(command)
-
 cursor.close()
 db.commit()
 db.close()
