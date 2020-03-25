@@ -156,7 +156,7 @@ class CZ:
             tablename = Path(file).stem
         df = pd.read_csv(file)
         rows = [x for x in df.itertuples(index=False, name=None)]
-        cols = ','.join(df.columns)
+        cols = ', '.join(df.columns)
         tab = ' ' * self.tabspace
         command = f'INSERT INTO {tablename}({cols})\nVALUES\n{tab}'
         for r in rows:

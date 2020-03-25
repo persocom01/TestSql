@@ -39,20 +39,14 @@ print(cz.csvs_into_database(file_paths, [
       'id', 'id', 'id', 'id', '', 'id', 'id']))
 # Show created tables. The sql query is SHOW TABLES
 print(cz.show_tables())
+print()
 
 # Drop tables.
-command = '''
-DROP TABLES
-    client
-    ,konosuba
-    ,partner
-    ,quest_map
-    ,quest
-    ,staff_request
-    ,timesheet_entry
-;
-'''
-# cursor.execute(command)
+tables = ['client', 'konosuba', 'partner', 'quest_map',
+          'quest', 'staff_request', 'timesheet_entry']
+print(cz.del_tables(tables, printable=True))
+# print(cz.del_tables(tables))
+print()
 print(cz.show_tables())
 
 cursor.close()

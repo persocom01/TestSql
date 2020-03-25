@@ -5,65 +5,79 @@
 # FOREIGN KEY
 # CHECK
 # DEFAULT
-import json
-import mariadb as mdb
-import pandas as pd
+from sqlalchemy import create_engine
 import pleiades as ple
 
-dbname = 'testDB'
-cfg_path = './server.cfg'
+engine = create_engine('mysql+pymysql://root:@localhost/testDB')
+con = engine.connect()
 
-with open(cfg_path, 'r') as f:
-    server_config = json.load(f)
-db = mdb.connect(**server_config)
-cursor = db.cursor()
+cz = ple.CZ(engine, alchemy=True)
 
-command = f'USE {dbname};'
-try:
-    cursor.execute(command)
-except mdb.ProgrammingError:
-    print('database does not exist')
-
-cz = ple.CZ(cursor)
-
-# CHECK is a CONSTRAINT that allows for data validation of sql tables by
-# checking if the data fulfils certain criteria.
-# Like UNIQUE, it can be added during table creation while defining column
-# datatypes or after. It can also be added to columns using ALTER TABLE.
-# After CHECK has been set, an error will be returned if a value that does not
-# meet the criteria is added or updated to the column. The CHECK criteria does
-# not have to be the same column as the column whose datatype was just defined.
-# However, it makes things confusing, and it still works as if you set CHECK
-# on the column defined in the criteria anyway.
-# If attempting to set CHECK on an existing table, and error will be returned
-# if any existing value in the column does not meet the criteria.
+# DEFAULT is used to define a default value for a column when no value is
+# specified. Formulas or functions can be defined as default values. Default
+# values are inserted into a column every time a row is added to it without
+# specifying values for DEFAULT columns.
 command = '''
 CREATE TABLE testtable(
     length DOUBLE
     ,breath DOUBLE
-    ,area DOUBLE DEFAULT(length*breath)
+    ,area DOUBLE DEFAULT(length * breath)
+    ,timestamp DATETIME
 );
 '''
-cursor.execute(command)
-df = pd.DataFrame(cz.show_columns('testtable'))
-print('check:')
-print(df)
+con.execute(command)
+
+# Default can also be added via ALTER TABLE.
+command = '''
+ALTER TABLE testtable
+MODIFY timestamp DATETIME DEFAULT NOW()
+;
+'''
+con.execute(command)
+print('default:')
+print(cz.show_columns('testtable'))
 print()
 
+# Demonstrates how DEFAULT works when values are inserted into the table.
 command = '''
-INSERT INTO testtable(length,breath)
+INSERT INTO testtable(length, breath)
 VALUES
     (2, 3)
     ,(3, 4)
 ;
 '''
-cursor.execute(command)
-df = pd.DataFrame(cz.select_from('testtable'))
-print('check:')
-print(df)
+con.execute(command)
+print('default at work:')
+print(cz.select_from('testtable').ex())
 print()
 
-cursor.close()
-db.commit()
-db.close()
-print('commands executed.')
+# Demonstrates dropping DEFAULT from a column.
+# The official way to do it is:
+# ALTER TABLE testtable
+# ALTER COLUMN timestamp DROP DEFAULT
+# ;
+# However, when tested, for some reason it didn't work with the timestamp
+# column. On testing, the datetime datatype seems to have something to do with
+# it. To be safe, modifying the whole column works better.
+command = '''
+ALTER TABLE testtable
+MODIFY timestamp DATETIME
+;
+'''
+con.execute(command)
+print('drop default:')
+print(cz.show_columns('testtable'))
+print()
+
+command = '''
+INSERT INTO testtable(length, breath)
+VALUES
+    (4, 5)
+;
+'''
+con.execute(command)
+print('no default timestamp:')
+print(cz.select_from('testtable').ex())
+print()
+
+print(cz.del_tables('testtable'))
