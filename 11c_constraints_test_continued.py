@@ -40,13 +40,13 @@ cz = ple.CZ(cursor)
 command = '''
 CREATE TABLE testtable(
 
-    id int CHECK(id > 0 and id < 100),
+    id INT CHECK(id > 0 and id < 100)
 
-    id2 int,
-    CHECK(id2 > 2),
+    ,id2 INT
+    ,CHECK(id2 > 2)
 
-    id3 int,
-    CONSTRAINT c_tt_id3
+    ,id3 INT
+    ,CONSTRAINT c_tt_id3
     CHECK(id3 > 3)
 );
 '''
@@ -74,16 +74,19 @@ cursor.execute(command)
 
 # Test criteria here.
 insert_value = 200
-command = f'INSERT INTO testtable(id) VALUES({insert_value});'
+colname = 'id'
+command = f'INSERT INTO testtable({colname}) VALUES({insert_value});'
+print(f'inserting value {insert_value} in column {colname}:')
 try:
     cursor.execute(command)
+    print('value successfully inserted.')
+    print()
 except mdb.IntegrityError:
     print('mariadb.IntegrityError: CONSTRAINT `testtable.id` failed for `testdb`.`testtable`')
+    print()
 
-command = '''
-DROP TABLES testtable;
-'''
-cursor.execute(command)
+print(cz.del_tables('testtable'))
+print()
 
 cursor.close()
 db.commit()

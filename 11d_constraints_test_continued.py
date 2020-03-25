@@ -39,19 +39,26 @@ cz = ple.CZ(cursor)
 # if any existing value in the column does not meet the criteria.
 command = '''
 CREATE TABLE testtable(
-
-    id int CHECK(id > 0 and id < 100),
-
-    id2 int,
-    CHECK(id2 > 2),
-
-    id3 int,
-    CONSTRAINT c_tt_id3
-    CHECK(id3 > 3)
+    length DOUBLE
+    ,breath DOUBLE
+    ,area DOUBLE DEFAULT(length*breath)
 );
 '''
 cursor.execute(command)
 df = pd.DataFrame(cz.show_columns('testtable'))
+print('check:')
+print(df)
+print()
+
+command = '''
+INSERT INTO testtable(length,breath)
+VALUES
+    (2, 3)
+    ,(3, 4)
+;
+'''
+cursor.execute(command)
+df = pd.DataFrame(cz.select_from('testtable'))
 print('check:')
 print(df)
 print()

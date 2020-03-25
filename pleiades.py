@@ -84,17 +84,17 @@ class CZ:
 
     def select_from(self, table, cols=None):
         tab = ' ' * self.tabspace
-        command = 'SELECT '
+        command = 'SELECT'
         if cols:
             if isinstance(cols, str):
-                command += f'{cols}\n'
+                command += f' {cols}\n'
             else:
-                command = command[:-1] + f'\n{tab}'
+                command += f'\n{tab}'
                 for col in cols:
                     command += f'{col}\n{tab},'
                 command = command[:-(self.tabspace+1)]
         else:
-            command += f'*\n'
+            command += f' *\n'
         command += f'FROM {table}\n;'
         return self.SQL(command, cursor=self.cursor, alchemy=self.alchemy)
 
@@ -226,6 +226,26 @@ class CZ:
         if has_incomplete_pkeys:
             return_statement = 'not all tables have primary keys.\n' + return_statement
         return return_statement
+
+    def del_tables(self, tables, printable=False):
+        tab = ' ' * self.tabspace
+        command = f'DROP TABLES'
+        if isinstance(tables, str):
+            command += f' {tables};'
+            return_string = tables
+        else:
+            command += f'\n{tab}'
+            for table in tables:
+                command += f'{table}\n{tab},'
+            command = command[:-(self.tabspace+1)] + ';'
+            return_string = ', '.join(tables)
+        if printable or self.cursor is None:
+            return command
+        if self.alchemy:
+            self.cursor.connect().execute(command)
+        else:
+            self.cursor.execute(command)
+        return f'table(s) {return_string} deleted.'
 
     def show_columns(self, table, all=False):
         if all:

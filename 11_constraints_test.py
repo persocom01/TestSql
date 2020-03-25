@@ -81,10 +81,8 @@ ADD CONSTRAINT u_tt_id3
 '''
 cursor.execute(command)
 
-command = '''
-DROP TABLES testtable;
-'''
-cursor.execute(command)
+print(cz.del_tables('testtable'))
+print()
 
 # CHANGE, MODIFY and RENAME are used to modify columns in an existing table
 # while ALTER TABLE is used.
