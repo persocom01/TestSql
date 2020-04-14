@@ -10,7 +10,7 @@ pd.set_option('display.max_rows', 300)
 engine = create_engine('mysql+pymysql://root:@localhost/testDB')
 con = engine.connect()
 
-cz = ple.CZ(engine, type='alchemy')
+cz = ple.CZ(engine, alchemy=True)
 
 # Problem 1.
 command = '''

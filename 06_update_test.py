@@ -15,7 +15,7 @@ WHERE id = 1;
 '''
 con.execute(command)
 
-cz = ple.CZ(engine, type='alchemy')
+cz = ple.CZ(engine, alchemy=True)
 
 print(cz.select_from('konosuba').ex())
 print()
