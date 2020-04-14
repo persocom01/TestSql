@@ -5,7 +5,7 @@ import pleiades as ple
 engine = create_engine('mysql+pymysql://root:@localhost/testDB')
 con = engine.connect()
 
-cz = ple.CZ(engine, alchemy=True)
+cz = ple.CZ(engine, type='alchemy')
 
 print('before:')
 print(cz.select_from('konosuba').ex())

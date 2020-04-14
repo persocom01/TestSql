@@ -11,7 +11,7 @@ import pleiades as ple
 engine = create_engine('mysql+pymysql://root:@localhost/testDB')
 con = engine.connect()
 
-cz = ple.CZ(engine, alchemy=True)
+cz = ple.CZ(engine, type='alchemy')
 
 # DEFAULT is used to define a default value for a column when no value is
 # specified. Formulas or functions can be defined as default values. Default

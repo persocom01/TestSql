@@ -8,7 +8,7 @@ pd.set_option('display.max_rows', 300)
 engine = create_engine('mysql+pymysql://root:@localhost/testDB')
 con = engine.connect()
 
-cz = ple.CZ(engine, alchemy=True)
+cz = ple.CZ(engine, type='alchemy')
 
 # INNER JOIN is most often used to connect multiple tables together. All
 # elements common to those tables are displayed, and the rest discarded.

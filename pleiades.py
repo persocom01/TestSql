@@ -4,7 +4,7 @@
 
 class CZ:
 
-    def __init__(self, cursor=None, alchemy=False):
+    def __init__(self, cursor=None, type='sql'):
         self.cursor = cursor
         self.dtype_dic = {
             'int64': 'INT',
@@ -12,7 +12,7 @@ class CZ:
             'bool': 'BOOLEAN',
             'datetime64': 'DATETIME'
         }
-        self.alchemy = alchemy
+        self.type = type
         self.tabspace = 4
 
     class SQL:
@@ -21,13 +21,13 @@ class CZ:
         where() before being executed with .ex()
 
         params:
-            alchemy     when set to true, assumes that cursor is an sqlalchemy
-                        engine. This results in some sql commands being
-                        returned as a DataFrame.
+            type    when set to 'alchemy', assumes that cursor is a sqlalchemy
+                    engine. This results in some sql commands being
+                    returned as a DataFrame.
         '''
 
-        def __init__(self, command, cursor=None, alchemy=False, tabspace=4):
-            self.alchemy = alchemy
+        def __init__(self, command, cursor=None, type=False, tabspace=4):
+            self.type = type
             self.command = command
             self.cursor = cursor
             self.tabspace = tabspace
@@ -36,7 +36,7 @@ class CZ:
             command = self.command
             if p or self.cursor is None:
                 return command
-            if self.alchemy:
+            if self.type == 'alchemy':
                 import pandas as pd
                 df = pd.read_sql_query(command, self.cursor)
                 return df
@@ -54,7 +54,7 @@ class CZ:
         command = 'SELECT DATABASE();'
         if printable or self.cursor is None:
             return command
-        if self.alchemy:
+        if self.type == 'alchemy':
             return self.cursor.connect().execute(command).fetchone()[0]
         else:
             self.cursor.execute(command)
@@ -64,7 +64,7 @@ class CZ:
         command = f'USE {db};'
         if printable or self.cursor is None:
             return command
-        if self.alchemy:
+        if self.type == 'alchemy':
             self.cursor.connect().execute(command)
         else:
             self.cursor.execute(command)
@@ -76,7 +76,7 @@ class CZ:
         command += f'\nDROP DATABASE {_db};'
         if printable or self.cursor is None:
             return command
-        if self.alchemy:
+        if self.type == 'alchemy':
             self.cursor.connect().execute(command)
         else:
             self.cursor.execute(command)
@@ -96,7 +96,7 @@ class CZ:
         else:
             command += f' *\n'
         command += f'FROM {table}\n;'
-        return self.SQL(command, cursor=self.cursor, alchemy=self.alchemy)
+        return self.SQL(command, cursor=self.cursor, type=self.type)
 
     def csv_table(self, file, pkey=None, printable=False, nrows=100):
         from pathlib import Path
@@ -129,7 +129,7 @@ class CZ:
         command = command[:-(self.tabspace+1)] + ');'
         if printable or self.cursor is None:
             return command
-        if self.alchemy:
+        if self.type == 'alchemy':
             self.cursor.connect().execute(command)
         else:
             self.cursor.execute(command)
@@ -181,7 +181,7 @@ class CZ:
         command = command[:-(self.tabspace+1)] + ';'
         if printable or self.cursor is None:
             return command
-        if self.alchemy:
+        if self.type == 'alchemy':
             self.cursor.connect().execute(command)
         else:
             self.cursor.execute(command)
@@ -241,7 +241,7 @@ class CZ:
             return_string = ', '.join(tables)
         if printable or self.cursor is None:
             return command
-        if self.alchemy:
+        if self.type == 'alchemy':
             self.cursor.connect().execute(command)
         else:
             self.cursor.execute(command)
@@ -252,7 +252,7 @@ class CZ:
             command = f"SHOW ALL COLUMNS FROM {table};"
         else:
             command = f"SHOW COLUMNS FROM {table};"
-        if self.alchemy:
+        if self.type == 'alchemy':
             import pandas as pd
             df = pd.read_sql_query(command, self.cursor)
             return df
@@ -265,10 +265,60 @@ class CZ:
             command = f"SELECT TABLE_NAME FROM INFORMATION_SCHEMA.TABLES WHERE TABLE_TYPE='BASE TABLE';"
         else:
             command = 'SHOW TABLES;'
-        if self.alchemy:
+        if self.type == 'alchemy':
             import pandas as pd
             df = pd.read_sql_query(command, self.cursor)
             return df
         else:
             self.cursor.execute(command)
             return self.cursor.fetchall()
+
+
+# Nabe deals with data cleaning and exploration.
+
+
+class Nabe:
+
+    def __init__(self):
+        self.null_dict = None
+        self.steps = '''
+        1. df.head()
+        2. df.info()
+        3. df.isnull().sum() or 1 - df.count() / df.shape[0]
+        4. clean
+        5. visualize correlations
+        '''
+
+    def get_null_indexes(self, df, cols=None):
+        '''
+        Takes a DataFrame and returns a dictionary of columns and the row
+        indexes of the null values in them.
+        '''
+        # Prevents errors from passing a string instead of a list.
+        if isinstance(cols, str):
+            cols = [cols]
+
+        null_indexes = []
+        null_dict = {}
+        if cols is None:
+            cols = df.columns
+        for col in cols:
+            null_indexes = df[df[col].isnull()].index.tolist()
+            null_dict[col] = null_indexes
+        return null_dict
+
+    # Drops columns with 75% or more null values.
+    def drop_null_cols(self, df, null_size=0.75, inplace=False):
+        if inplace is False:
+            df = df.copy()
+        null_table = 1 - df.count() / df.shape[0]
+        non_null_cols = [i for i, v in enumerate(null_table) if v < null_size]
+        df = df.iloc[:, non_null_cols]
+        return df
+
+    # Returns the row index of a column value.
+    def get_index(self, df, col_name, value):
+        if len(df.loc[df[col_name] == value]) == 1:
+            return df.loc[df[col_name] == value].index[0]
+        else:
+            return df.loc[df[col_name] == value].index

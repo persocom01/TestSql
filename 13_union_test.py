@@ -8,7 +8,7 @@ pd.set_option('display.max_rows', 300)
 engine = create_engine('mysql+pymysql://root:@localhost/testDB')
 con = engine.connect()
 
-cz = ple.CZ(engine, alchemy=True)
+cz = ple.CZ(engine, type='alchemy')
 
 # UNION is used to vertically join two or more SELECT FROM statements together
 # with no duplicates. The result will always use the column names from the
