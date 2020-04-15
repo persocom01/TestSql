@@ -1,6 +1,8 @@
 # Creates the server.cfg file.
 import json
 
+# Aside from this, if connecting to a cloud server over the net, ensure that it
+# is set to publicly available.
 server_config = {
     'user': 'root',
     # 'password': '1234',
