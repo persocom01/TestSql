@@ -11,6 +11,7 @@ pd.set_option('display.max_rows', 300)
 # sqlalchemy's engine strings are written in the form:
 # dialect[+driver]://user:password@host:port/dbname[?key=value..]
 # Leave out /dbname if not connecting to a db.
+# It seems to work even if the port is not given.
 engine = create_engine('mysql+pymysql://root:@localhost/testDB')
 con = engine.connect()
 
