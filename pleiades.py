@@ -123,7 +123,7 @@ class CZ:
         command += f'FROM {table}\n;'
         return self.SQL(command, cursor=self.cursor, alchemy=self.alchemy)
 
-    def csv_table(self, file, pkey=None, printable=False, **kwargs):
+    def csv_table(self, file, pkey=None, nrows=100000, printable=False, **kwargs):
         from pathlib import Path
         import pandas as pd
         from math import ceil
@@ -132,7 +132,7 @@ class CZ:
         # The file name will be used as the table name.
         tablename = Path(file).stem
         # pandas is used to impute datatypes.
-        df = pd.read_csv(file, **kwargs)
+        df = pd.read_csv(file, nrows=nrows, **kwargs)
         df_dtypes = [x for x in df.dtypes.apply(lambda x: x.name)]
         df = df.fillna('')
         sql_dtypes = []
@@ -156,72 +156,109 @@ class CZ:
         command = command[:-(self.tabspace+1)] + ');'
         if printable or self.cursor is None:
             return command
-        if self.alchemy:
-            self.cursor.connect().execute(command)
-        else:
-            self.cursor.execute(command)
+        self.cursor.execute(command)
         return f'table {tablename} created.'
 
-    def csv_insert(self, file, updatekey=None, postgre=False, tablename=None, printable=False, **kwargs):
+    def csv_insert(self, file, updatekey=None, postgre=False, tablename=None, chunksize=None, sizelim=1073741824, printable=False, **kwargs):
         '''
         Convenience function that uploads file data into a premade database
         table.
 
         params:
+            file        path of file to be uploaded.
             updatekey   given the table's primary key, the function updates all
                         values in the table with those from the file except the
                         primary key. If sqlalchemy is used, tables values are
                         updated by default, but the primary key is set using
                         this value.
-            postgre     set to True if working on a PostgreSQL database.
+            postgre     set to True if working on a PostgreSQL database. Only
+                        relevant if not using sqlalchemy.
             tablename   if None, tablename = filename.
+            chunksize   determines the number of rows read from the csv file to
+                        insert into the database at a time. This is
+                        specifically meant to deal with memory issues. As such,
+                        when chunksize != None and printable == True, the
+                        commands will be written to chunk_insert.txt instead of
+                        being returned for printing.
+            sizelim     determines the file size, in bytes, before a default
+                        chunksize of 10000 is imposed if chunksize is not
+                        already specified.
             printable   returns the SQL command that would have been executed
                         as a printable string.
             **kwargs    Other arguments to be passed on to pandas read_csv.
         '''
+        from pathlib import Path
         import pandas as pd
         from re import sub
         if tablename is None:
-            from pathlib import Path
             tablename = Path(file).stem
-        df = pd.read_csv(file, **kwargs)
-        if self.alchemy and printable is False:
+        # Automatically set chunksize if file exceeds sizelim.
+        if Path(file).stat().st_size >= sizelim and chunksize is None:
+            chunksize = 100000
+
+        def alchemy_insert(df, updatekey=None, tablename=None):
             df.to_sql(tablename, self.cursor, index=False, if_exists='replace')
             if updatekey:
                 command = f'ALTER TABLE {tablename} ADD PRIMARY KEY({updatekey});'
                 self.cursor.execute(command)
-            return f'data loaded into table {tablename}.'
-        rows = [x for x in df.itertuples(index=False, name=None)]
-        cols = ', '.join(df.columns)
-        tab = ' ' * self.tabspace
-        command = f'INSERT INTO {tablename}({cols})\nVALUES\n{tab}'
-        for r in rows:
-            # Fix null values.
-            pattern = r"([^\w'])nan([^\w'])"
-            replacement = r'\1NULL\2'
-            fixed_r = sub(pattern, replacement, f'{r}')
-            command += f'{fixed_r}\n{tab},'
-        if updatekey:
-            if postgre:
-                command = command[:-(self.tabspace+1)] + \
-                    f'ON CONFLICT ({updatekey}) DO UPDATE SET\n{tab}'
-                for c in df.columns:
-                    if c != updatekey:
-                        command += f'{c}=excluded.{c}\n{tab},'
-            else:
-                command = command[:-(self.tabspace+1)] + \
-                    f'ON DUPLICATE KEY UPDATE\n{tab}'
-                for c in df.columns:
-                    if c != updatekey:
-                        command += f'{c}=VALUES({c})\n{tab},'
-        command = command[:-(self.tabspace+1)] + ';'
-        if printable or self.cursor is None:
-            return command
-        if self.alchemy:
-            self.cursor.connect().execute(command)
-        else:
+
+        def cursor_insert(df, updatekey=None, postgre=False, tablename=None, printable=False):
+            rows = [x for x in df.itertuples(index=False, name=None)]
+            cols = ', '.join(df.columns)
+            tab = ' ' * self.tabspace
+            command = f'INSERT INTO {tablename}({cols})\nVALUES\n{tab}'
+            for r in rows:
+                # Fix null values.
+                pattern = r"([^\w'])nan([^\w'])"
+                replacement = r'\1NULL\2'
+                fixed_r = sub(pattern, replacement, f'{r}')
+                command += f'{fixed_r}\n{tab},'
+            if updatekey:
+                if postgre:
+                    command = command[:-(self.tabspace+1)] + \
+                        f'ON CONFLICT ({updatekey}) DO UPDATE SET\n{tab}'
+                    for c in df.columns:
+                        if c != updatekey:
+                            command += f'{c}=excluded.{c}\n{tab},'
+                else:
+                    command = command[:-(self.tabspace+1)] + \
+                        f'ON DUPLICATE KEY UPDATE\n{tab}'
+                    for c in df.columns:
+                        if c != updatekey:
+                            command += f'{c}=VALUES({c})\n{tab},'
+            command = command[:-(self.tabspace+1)] + ';\n'
+            if printable or self.cursor is None:
+                return command
             self.cursor.execute(command)
-        return f'data loaded into table {tablename}.'
+
+        if chunksize:
+            reader = pd.read_csv(file, chunksize=chunksize, **kwargs)
+
+            for chunk in reader:
+                df = pd.DataFrame(chunk)
+                if self.alchemy and printable is False:
+                    alchemy_insert(df, updatekey=updatekey, tablename=tablename)
+                if printable or self.cursor is None:
+                    with open('chunk_insert.txt', 'a') as f:
+                        f.write(cursor_insert(df, updatekey=updatekey, postgre=postgre, tablename=tablename, printable=printable))
+                else:
+                    cursor_insert(df, updatekey=updatekey, postgre=postgre, tablename=tablename, printable=printable)
+
+            if printable is None and self.cursor:
+                return f'data loaded into table {tablename}.'
+
+        else:
+            df = pd.read_csv(file, **kwargs)
+
+            if self.alchemy and printable is False:
+                alchemy_insert(df, updatekey=updatekey, tablename=tablename)
+                return f'data loaded into table {tablename}.'
+
+            if printable or self.cursor is None:
+                return cursor_insert(df, updatekey=updatekey, postgre=postgre, tablename=tablename, printable=printable)
+
+            cursor_insert(df, updatekey=updatekey, postgre=postgre, tablename=tablename, printable=printable)
+            return f'data loaded into table {tablename}.'
 
     def csvs_into_database(self, file_paths, pkeys=None, printable=False, **kwargs):
         '''
