@@ -1,8 +1,10 @@
-# TestSQL
+# SQLite
 
-An SQL testing playground organized by topic in the sql tutorial here: https://www.tutorialspoint.com/sql/index.htm
+SQLite is a relational database management system (RDBMS) that is not a client-derver engine, but is instead embedded into applications.
 
 ## Installation
+
+### AWS
 
 This project used the database server from the WinNMP server stack. Python was used to connect to the database server and Atom was used as text editor.
 
