@@ -4,6 +4,10 @@ An SQL testing playground organized by topic in the sql tutorial here: https://w
 
 ## Installation
 
+### AWS RDS
+
+### Local machine
+
 This project used the database server from the WinNMP server stack. Python was used to connect to the database server and Atom was used as text editor.
 
 * [WinNMP 20.01](https://winnmp.wtriple.com/)
