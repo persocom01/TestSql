@@ -75,6 +75,27 @@ class CZ:
             self.command = command
             return self
 
+    def create_db(self, db, printable=False):
+        command = f'CREATE DATABASE {db};'
+        if printable or self.cursor is None:
+            return command
+        if self.alchemy:
+            self.cursor.connect().execute(command)
+        else:
+            self.cursor.execute(command)
+        return f'database {db} created.'
+
+    def del_db(self, db, printable=False):
+        command = f'DROP DATABASE {db};'
+        if printable or self.cursor is None:
+            return command
+        if self.alchemy:
+            self.cursor.connect().execute(command)
+        else:
+            self.cursor.execute(command)
+        return f'database {db} deleted.'
+
+    # Returns the name of the currently selected db.
     def get_db(self, printable=False):
         command = 'SELECT DATABASE();'
         if printable or self.cursor is None:
@@ -123,14 +144,54 @@ class CZ:
         command += f'FROM {table}\n;'
         return self.SQL(command, cursor=self.cursor, alchemy=self.alchemy)
 
-    def csv_table(self, file, pkey=None, nrows=100000, printable=False, **kwargs):
+    def csv_clean_colnames(self, file, sep=''):
+        '''
+        Given the path to a csv file, this function cleans the column names by
+        converting removing leading and trailing white spaces, converting all
+        letters to lowercase, replacing all remaining whitespaces with
+        underscores, removing brackets, forward slashes, and other special
+        characters. The csv file is then replaced with a copy of itself with
+        the cleaned column names.
+
+        params:
+            file        path of file wholse column names are to be cleaned.
+            sep         The character(s) used to replace brackets and special
+                        characters.
+        '''
+        import re
+        import csv
+        import os
+
+        def remove_special_characters(text, sep=sep):
+            pattern = r'[^a-zA-Z0-9!"#$%&\'()*+, -./:; <= >?@[\]^_`{|}~]'
+            return re.sub(pattern, sep, text)
+
+        # Opens the csv file and writes the cleaned version to a .tmp file.
+        tempfile = file + '.tmp'
+        with open(file, 'r') as infile, open(tempfile, 'w', newline='') as outfile:
+            r = csv.reader(infile, delimiter=',', quotechar='"')
+            colnames = next(r)
+            colnames = [remove_special_characters(x.strip().lower().replace(' ', '_').replace('(', sep).replace(')', sep).replace('/', sep)) for x in colnames]
+
+            w = csv.writer(outfile)
+            w.writerow(colnames)
+            for i, row in enumerate(r):
+                if i > 0:
+                    w.writerow(row)
+
+        # Delete original and replace it with the cleaned file.
+        os.remove(file)
+        os.rename(tempfile, file)
+
+    def csv_table(self, file, tablename=None, pkey=None, nrows=100000, printable=False, **kwargs):
         from pathlib import Path
         import pandas as pd
         from math import ceil
         if self.alchemy and printable is False:
             return 'csv_insert creates the necessary tables with sqlalchemy.'
-        # The file name will be used as the table name.
-        tablename = Path(file).stem
+        # The file name will be used as the table name if not provided.
+        if tablename is None:
+            tablename = Path(file).stem
         # pandas is used to impute datatypes.
         df = pd.read_csv(file, nrows=nrows, **kwargs)
         df_dtypes = [x for x in df.dtypes.apply(lambda x: x.name)]
@@ -189,21 +250,40 @@ class CZ:
             **kwargs    Other arguments to be passed on to pandas read_csv.
         '''
         from pathlib import Path
-        import pandas as pd
         from re import sub
+        from sqlalchemy.exc import InternalError
+        import pandas as pd
         if tablename is None:
             tablename = Path(file).stem
         # Automatically set chunksize if file exceeds sizelim.
         if Path(file).stat().st_size >= sizelim and chunksize is None:
             chunksize = 100000
 
+        def individual_insert(df, tablename=None):
+            rows = [x for x in df.itertuples(index=False, name=None)]
+            cols = ', '.join(df.columns)
+            for r in rows:
+                command = f'INSERT INTO {tablename}({cols}) VALUES '
+                # Fix null values.
+                pattern = r"([^\w'])nan([^\w'])"
+                replacement = r'\1NULL\2'
+                fixed_r = sub(pattern, replacement, f'{r}')
+                command += f'{fixed_r}'
+                try:
+                    self.cursor.execute(command)
+                except InternalError:
+                    continue
+
         def alchemy_insert(df, updatekey=None, tablename=None):
-            df.to_sql(tablename, self.cursor, index=False, if_exists='replace')
+            try:
+                df.to_sql(tablename, self.cursor, index=False, if_exists='append')
+            except InternalError:
+                individual_insert(df, tablename=tablename)
             if updatekey:
                 command = f'ALTER TABLE {tablename} ADD PRIMARY KEY({updatekey});'
                 self.cursor.execute(command)
 
-        def cursor_insert(df, updatekey=None, postgre=False, tablename=None, printable=False):
+        def cursor_insert(df, tablename=None, updatekey=None, postgre=False, printable=False):
             rows = [x for x in df.itertuples(index=False, name=None)]
             cols = ', '.join(df.columns)
             tab = ' ' * self.tabspace
@@ -265,7 +345,7 @@ class CZ:
                           tablename=tablename, printable=printable)
             return f'data loaded into table {tablename}.'
 
-    def csvs_into_database(self, file_paths, pkeys=None, printable=False, **kwargs):
+    def csvs_into_database(self, file_paths, tablename=None, clean_colnames=False, pkeys=None, printable=False, **kwargs):
         '''
         Convenience function that uploads a folder of files into a database.
         params:
@@ -292,18 +372,41 @@ class CZ:
             if isinstance(pkeys, str):
                 pkeys = [pkeys]
             else:
-                for i, file in enumerate(files):
-                    try:
-                        self.csv_table(file, pkeys[i], **kwargs)
-                        self.csv_insert(file, pkeys[i], **kwargs)
-                    except IndexError:
-                        has_incomplete_pkeys = True
-                        self.csv_table(file, **kwargs)
-                        self.csv_insert(file, **kwargs)
+                if tablename:
+                    for i, file in enumerate(files):
+                        if clean_colnames:
+                            self.csv_clean_colnames(file)
+                        if i == 0:
+                            self.csv_table(files[i], tablename=tablename, updatekey=pkeys[i], **kwargs)
+                        try:
+                            self.csv_insert(file, tablename=tablename, updatekey=pkeys[i], **kwargs)
+                        except TypeError or IndexError:
+                            self.csv_insert(file, tablename=tablename, **kwargs)
+                else:
+                    for i, file in enumerate(files):
+                        if clean_colnames:
+                            self.csv_clean_colnames(file)
+                        try:
+                            self.csv_table(file, updatekey=pkeys[i], **kwargs)
+                            self.csv_insert(file, updatekey=pkeys[i], **kwargs)
+                        except TypeError or IndexError:
+                            has_incomplete_pkeys = True
+                            self.csv_table(file, **kwargs)
+                            self.csv_insert(file, **kwargs)
         else:
-            for file in files:
-                self.csv_table(file)
-                self.csv_insert(file)
+            if tablename:
+                for i, file in enumerate(files):
+                    if clean_colnames:
+                        self.csv_clean_colnames(file)
+                    if i == 0:
+                        self.csv_table(files[i], tablename=tablename, **kwargs)
+                    self.csv_insert(file, tablename=tablename, **kwargs)
+            else:
+                for file in files:
+                    if clean_colnames:
+                        self.csv_clean_colnames(file)
+                    self.csv_table(file, **kwargs)
+                    self.csv_insert(file, **kwargs)
         return_statement = f'files written to database {self.get_db()}.'
         if has_incomplete_pkeys:
             return_statement = 'not all tables have primary keys.\n' + return_statement
