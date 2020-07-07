@@ -1,25 +1,26 @@
 # CZ deals with databases.
+# She primarily functions to make the use of sqlalchemy easier.
 # She pastes 1 yen stickers on things she likes.
 
 
 class CZ:
 
-    def __init__(self, cursor=None, alchemy=False):
-        self.cursor = cursor
+    def __init__(self, engine=None, database=None):
+        self.engine = engine
+        self.database = database
         self.dtype_dic = {
             'int64': 'INT',
             'float64': 'DOUBLE',
             'bool': 'BOOLEAN',
             'datetime64': 'DATETIME'
         }
-        self.alchemy = alchemy
         self.tabspace = 4
 
     # This function is meant to be used on boto3.resource objects.
     def get_keys(self, bucket_name, prefix='/', suffix=None, delimiter='/'):
         import re
         prefix = prefix[1:] if prefix.startswith(delimiter) else prefix
-        bucket = self.cursor.Bucket(bucket_name)
+        bucket = self.engine.Bucket(bucket_name)
         keys = [_.key for _ in bucket.objects.filter(Prefix=prefix)]
         for key in keys:
             if suffix:
@@ -29,6 +30,7 @@ class CZ:
                 keys.remove(key)
         return keys
 
+    # This function is meant to be used on boto3.resource objects.
     def download_files(self, bucket_name, keys, savein=''):
         import re
         if isinstance(keys, str):
@@ -36,7 +38,7 @@ class CZ:
         for key in keys:
             filename = re.search(r'/([^/]+)$', key, re.I)[1]
             file_path = savein + filename
-            bucket = self.cursor.Bucket(bucket_name)
+            bucket = self.engine.Bucket(bucket_name)
             bucket.download_file(key, file_path)
         return f'{len(keys)} files downloaded.'
 
@@ -44,30 +46,20 @@ class CZ:
         '''
         The SQL object allows a SQL statement to be extended with methods like
         where() before being executed with .ex()
-
-        params:
-            alchemy     when set to true, assumes that cursor is an sqlalchemy
-                        engine. This results in some sql commands being
-                        returned as a DataFrame.
         '''
 
-        def __init__(self, command, cursor=None, alchemy=False, tabspace=4):
-            self.alchemy = alchemy
+        def __init__(self, command, engine=None, tabspace=4):
             self.command = command
-            self.cursor = cursor
+            self.engine = engine
             self.tabspace = tabspace
 
         def ex(self, p=False):
             command = self.command
-            if p or self.cursor is None:
+            if p or self.engine is None:
                 return command
-            if self.alchemy:
-                import pandas as pd
-                df = pd.read_sql_query(command, self.cursor)
-                return df
-            else:
-                self.cursor.execute(command)
-                return self.cursor.fetchall()
+            import pandas as pd
+            df = pd.read_sql_query(command, self.engine)
+            return df
 
         def where(self, condition):
             command = self.command
@@ -75,57 +67,59 @@ class CZ:
             self.command = command
             return self
 
-    def create_db(self, db, printable=False):
+    def mk_db(self, db, printable=False):
+        from sqlalchemy.exc import ProgrammingError
         command = f'CREATE DATABASE {db};'
-        if printable or self.cursor is None:
+        if printable or self.engine is None:
             return command
-        if self.alchemy:
-            self.cursor.connect().execute(command)
-        else:
-            self.cursor.execute(command)
-        return f'database {db} created.'
+        try:
+            self.engine.connect().execute(command)
+            return f'database {db} created.'
+        except ProgrammingError:
+            return f'database {db} already exists.'
+
+    def show_db(self, printable=False):
+        command = f'SHOW DATABASES;'
+        if printable or self.engine is None:
+            return command
+        import pandas as pd
+        df = pd.read_sql_query(command, self.engine)
+        return df
 
     def del_db(self, db, printable=False):
         command = f'DROP DATABASE {db};'
-        if printable or self.cursor is None:
+        if printable or self.engine is None:
             return command
-        if self.alchemy:
-            self.cursor.connect().execute(command)
-        else:
-            self.cursor.execute(command)
+        self.engine.connect().execute(command)
         return f'database {db} deleted.'
 
     # Returns the name of the currently selected db.
-    def get_db(self, printable=False):
+    def current_db(self, printable=False):
         command = 'SELECT DATABASE();'
-        if printable or self.cursor is None:
+        if printable or self.engine is None:
             return command
-        if self.alchemy:
-            return self.cursor.connect().execute(command).fetchone()[0]
-        else:
-            self.cursor.execute(command)
-            return self.cursor.fetchone()[0]
+        return self.engine.connect().execute(command).fetchone()[0]
 
     def use_db(self, db, printable=False):
         command = f'USE {db};'
-        if printable or self.cursor is None:
+        if printable or self.engine is None:
             return command
         if self.alchemy:
-            self.cursor.connect().execute(command)
+            self.engine.connect().execute(command)
         else:
-            self.cursor.execute(command)
+            self.engine.execute(command)
         return f'database {db} selected.'
 
     def unuse_db(self, printable=False, _db='2arnbzheo2j0gygkteu9ltxtabmzldvb'):
         command = f'CREATE DATABASE {_db};'
         command += f'\nUSE {_db};'
         command += f'\nDROP DATABASE {_db};'
-        if printable or self.cursor is None:
+        if printable or self.engine is None:
             return command
         if self.alchemy:
-            self.cursor.connect().execute(command)
+            self.engine.connect().execute(command)
         else:
-            self.cursor.execute(command)
+            self.engine.execute(command)
         return 'database deselected.'
 
     def select_from(self, table, cols=None):
@@ -142,7 +136,7 @@ class CZ:
         else:
             command += f' *\n'
         command += f'FROM {table}\n;'
-        return self.SQL(command, cursor=self.cursor, alchemy=self.alchemy)
+        return self.SQL(command, engine=self.engine, alchemy=self.alchemy)
 
     def csv_clean_colnames(self, file, sep=''):
         '''
@@ -215,9 +209,9 @@ class CZ:
         if pkey:
             command += f'PRIMARY KEY({pkey})\n{tab},'
         command = command[:-(self.tabspace+1)] + ');'
-        if printable or self.cursor is None:
+        if printable or self.engine is None:
             return command
-        self.cursor.execute(command)
+        self.engine.execute(command)
         return f'table {tablename} created.'
 
     def csv_insert(self, file, updatekey=None, postgre=False, tablename=None, chunksize=None, sizelim=1073741824, printable=False, **kwargs):
@@ -270,20 +264,20 @@ class CZ:
                 fixed_r = sub(pattern, replacement, f'{r}')
                 command += f'{fixed_r}'
                 try:
-                    self.cursor.execute(command)
+                    self.engine.execute(command)
                 except InternalError:
                     continue
 
         def alchemy_insert(df, updatekey=None, tablename=None):
             try:
-                df.to_sql(tablename, self.cursor, index=False, if_exists='append')
+                df.to_sql(tablename, self.engine, index=False, if_exists='append')
             except InternalError:
                 individual_insert(df, tablename=tablename)
             if updatekey:
                 command = f'ALTER TABLE {tablename} ADD PRIMARY KEY({updatekey});'
-                self.cursor.execute(command)
+                self.engine.execute(command)
 
-        def cursor_insert(df, tablename=None, updatekey=None, postgre=False, printable=False):
+        def engine_insert(df, tablename=None, updatekey=None, postgre=False, printable=False):
             rows = [x for x in df.itertuples(index=False, name=None)]
             cols = ', '.join(df.columns)
             tab = ' ' * self.tabspace
@@ -308,9 +302,9 @@ class CZ:
                         if c != updatekey:
                             command += f'{c}=VALUES({c})\n{tab},'
             command = command[:-(self.tabspace+1)] + ';\n'
-            if printable or self.cursor is None:
+            if printable or self.engine is None:
                 return command
-            self.cursor.execute(command)
+            self.engine.execute(command)
 
         if chunksize:
             reader = pd.read_csv(file, chunksize=chunksize, **kwargs)
@@ -320,15 +314,15 @@ class CZ:
                 if self.alchemy and printable is False:
                     alchemy_insert(df, updatekey=updatekey,
                                    tablename=tablename)
-                if printable or self.cursor is None:
+                if printable or self.engine is None:
                     with open('chunk_insert.txt', 'a') as f:
-                        f.write(cursor_insert(
+                        f.write(engine_insert(
                             df, updatekey=updatekey, postgre=postgre, tablename=tablename, printable=printable))
                 else:
-                    cursor_insert(df, updatekey=updatekey, postgre=postgre,
+                    engine_insert(df, updatekey=updatekey, postgre=postgre,
                                   tablename=tablename, printable=printable)
 
-            if printable is None and self.cursor:
+            if printable is None and self.engine:
                 return f'data loaded into table {tablename}.'
 
         else:
@@ -338,10 +332,10 @@ class CZ:
                 alchemy_insert(df, updatekey=updatekey, tablename=tablename)
                 return f'data loaded into table {tablename}.'
 
-            if printable or self.cursor is None:
-                return cursor_insert(df, updatekey=updatekey, postgre=postgre, tablename=tablename, printable=printable)
+            if printable or self.engine is None:
+                return engine_insert(df, updatekey=updatekey, postgre=postgre, tablename=tablename, printable=printable)
 
-            cursor_insert(df, updatekey=updatekey, postgre=postgre,
+            engine_insert(df, updatekey=updatekey, postgre=postgre,
                           tablename=tablename, printable=printable)
             return f'data loaded into table {tablename}.'
 
@@ -424,12 +418,12 @@ class CZ:
                 command += f'{table}\n{tab},'
             command = command[:-(self.tabspace+1)] + ';'
             return_string = ', '.join(tables)
-        if printable or self.cursor is None:
+        if printable or self.engine is None:
             return command
         if self.alchemy:
-            self.cursor.connect().execute(command)
+            self.engine.connect().execute(command)
         else:
-            self.cursor.execute(command)
+            self.engine.execute(command)
         return f'table(s) {return_string} deleted.'
 
     def show_columns(self, table, all=False):
@@ -439,11 +433,11 @@ class CZ:
             command = f"SHOW COLUMNS FROM {table};"
         if self.alchemy:
             import pandas as pd
-            df = pd.read_sql_query(command, self.cursor)
+            df = pd.read_sql_query(command, self.engine)
             return df
         else:
-            self.cursor.execute(command)
-            return self.cursor.fetchall()
+            self.engine.execute(command)
+            return self.engine.fetchall()
 
     def show_tables(self, all=False):
         if all:
@@ -452,208 +446,8 @@ class CZ:
             command = 'SHOW TABLES;'
         if self.alchemy:
             import pandas as pd
-            df = pd.read_sql_query(command, self.cursor)
+            df = pd.read_sql_query(command, self.engine)
             return df
         else:
-            self.cursor.execute(command)
-            return self.cursor.fetchall()
-
-
-# Nabe deals with data cleaning and exploration.
-
-
-class Nabe:
-
-    def __init__(self):
-        self.null_dict = None
-        self.steps = '''
-        1. df.head()
-        2. df.info()
-        3. df.isnull().sum() or 1 - df.count() / df.shape[0]
-        4. clean
-        5. visualize correlations
-        '''
-
-    def get_null_indexes(self, df, cols=None):
-        '''
-        Takes a DataFrame and returns a dictionary of columns and the row
-        indexes of the null values in them.
-        '''
-        # Prevents errors from passing a string instead of a list.
-        if isinstance(cols, str):
-            cols = [cols]
-
-        null_indexes = []
-        null_dict = {}
-        if cols is None:
-            cols = df.columns
-        for col in cols:
-            null_indexes = df[df[col].isnull()].index.tolist()
-            null_dict[col] = null_indexes
-        return null_dict
-
-    # Drops columns with 75% or more null values.
-    def drop_null_cols(self, df, null_size=0.75, inplace=False):
-        if inplace is False:
-            df = df.copy()
-        null_table = 1 - df.count() / df.shape[0]
-        non_null_cols = [i for i, v in enumerate(null_table) if v < null_size]
-        df = df.iloc[:, non_null_cols]
-        return df
-
-    # Returns the row index of a column value.
-    def get_index(self, df, col_name, value):
-        if len(df.loc[df[col_name] == value]) == 1:
-            return df.loc[df[col_name] == value].index[0]
-        else:
-            return df.loc[df[col_name] == value].index
-
-# Lupusregina deals with word processing.
-
-
-class Lupu:
-
-    def __init__(self):
-        # Contractions dict.
-        self.contractions = {
-            "n't": " not",
-            "n’t": " not",
-            "'s": " is",
-            "’s": " is",
-            "'m": " am",
-            "’m": " am",
-            "'ll": " will",
-            "’ll": " will",
-            "'ve": " have",
-            "’ve": " have",
-            "'re": " are",
-            "’re": " are"
-        }
-        self.re_ref = {
-            'email': r'([a-zA-Z0-9_.+-]+@[a-zA-Z0-9-]+\.[a-zA-Z0-9-.]+)',
-            'link': r'(https?://[^ ]+)',
-            'gender_pronoun': [r'[hH]e/[hH]im', '[tT]hey/[tT]hem', '[tT]ey/[tT]em', '[eE]y/[eE]m', '[eE]/[eE]m', '[tT]hon/[tT]hon', '[fF]ae/[fF]aer', '[vV]ae/[vV]aer', '[aA]e/[aA]er', '[nN]e/[nN]ym', '[nN]e/[nN]em', '[xX]e/[xX]em', '[xX]e/[xX]im', '[xX]ie/[xX]em', '[zZ]e/[zZ]ir', '[zZ]ie/[zZ]ir', '[zZ]he/[zZ]hir', '[zZ]e/[hH]ir', '[sS]ie/[sS]ier', '[zZ]ed/[zZ]ed', '[zZ]ed/[zZ]ed', '[cC]e/[cC]ir', '[cC]o/[cC]os', '[vV]e/[vV]is', '[jJ]ee/[jJ]em', '[lL]ee/[lL]im', '[kK]ye/[kK]yr', '[pP]er/[pP]er', '[hH]u/[hH]um', '[bB]un/[bB]un', '[iI]t/[iI]t']
-        }
-        self.sep = ' '
-
-    # Lowercase.
-    def to_lower(self, sentence):
-        return sentence.lower()
-
-    # To tokenize is to split the sentence into words.
-    def re_tokenize(self, sentence, sep=r'\w+'):
-        from nltk.tokenize import RegexpTokenizer
-        retoken = RegexpTokenizer(sep)
-        words = retoken.tokenize(sentence)
-        return words
-
-    # Lemmatizing eliminates things like the s from plurals like apples.
-    def lemmatize_sentence(self, sentence):
-        from nltk.stem import WordNetLemmatizer
-        wnlem = WordNetLemmatizer()
-        words = self.re_tokenize(sentence)
-        words = [wnlem.lemmatize(word) for word in words]
-        # Returns sentence instead of individual words.
-        return ' '.join(words)
-
-    # Stemming is a more drastic approach than lemmatizing. It truncates words
-    # to get to the root word.
-    def stem_sentence(self, sentence):
-        from nltk.stem.porter import PorterStemmer
-        p_stem = PorterStemmer()
-        words = self.re_tokenize(sentence)
-        words = [p_stem.stem(word) for word in words]
-        # Returns sentence instead of individual words.
-        return ' '.join(words)
-
-    def remove_punctuation(self, sentence, sep=None):
-        import re
-        if sep is None:
-            sep = self.sep
-        sentence = re.sub(
-            r'[!"#$%&\'()*+, -./:; <= >?@[\]^_`{|}~’“”]', sep, sentence)
-        return sentence
-
-    def split_camel_case(self, sentence):
-        import re
-        splitted = re.sub('([A-Z][a-z]+)', r' \1',
-                          re.sub('([0-9A-Z]+)', r' \1', sentence)).split()
-        return ' '.join(splitted)
-
-    def text_list_cleaner(self, text_list, *args, sep=None, inplace=False):
-        '''
-        Function made to make chain transformations on text lists easy.
-
-        Maps words when passed functions or dictionaries as *arguments.
-        Removes words when passed lists or strings.
-
-        Aside from lists, all *arguments should be made in regex format, as the
-        function does not account for spaces or word boundaries by default.
-        '''
-        import re
-        if inplace is False:
-            text_list = text_list.copy()
-        if sep is None:
-            sep = self.sep
-
-        # Prevents KeyError from passing a pandas series with index not
-        # beginning in 0.
-        try:
-            iter(text_list.index)
-            r = text_list.index
-        except TypeError:
-            r = range(len(text_list))
-
-        for i in r:
-            for arg in args:
-                # Maps text with a function.
-                if callable(arg):
-                    text_list[i] = arg(text_list[i])
-                # Maps text defined in dict keys with their corresponding
-                # values.
-                elif isinstance(arg, dict):
-                    for k, v in arg.items():
-                        text_list[i] = re.sub(k, v, text_list[i])
-                # Removes all words passed as a list.
-                elif not isinstance(arg, str):
-                    for a in arg:
-                        pattern = r'\b{}\b'.format(a)
-                        text_list[i] = re.sub(pattern, sep, text_list[i])
-                # For any other special cases.
-                else:
-                    text_list[i] = re.sub(arg, sep, text_list[i])
-        return text_list
-
-    def word_cloud(self, text, figsize=(12.5, 7.5), max_font_size=None, max_words=200, background_color='black', mask=None, recolor=False, export_path=None, **kwargs):
-        '''
-        Plots a wordcloud.
-
-        Use full_text = ' '.join(list_of_text) to get a single string.
-        '''
-        import numpy as np
-        import matplotlib.pyplot as plt
-        from PIL import Image
-        from wordcloud import WordCloud, ImageColorGenerator
-
-        fig, ax = plt.subplots(figsize=figsize)
-        if mask:
-            m = np.array(Image.open(mask))
-            cloud = WordCloud(background_color=background_color,
-                              max_words=max_words, mask=m, **kwargs)
-            cloud.generate(text)
-            if recolor:
-                image_colors = ImageColorGenerator(mask)
-                ax.imshow(cloud.recolor(color_func=image_colors),
-                          interpolation='bilinear')
-            else:
-                ax.imshow(cloud, interpolation='bilinear')
-        else:
-            cloud = WordCloud(background_color=background_color,
-                              max_words=max_words, **kwargs)
-            cloud.generate(text)
-            ax.imshow(cloud, interpolation='bilinear')
-        if export_path:
-            cloud.to_file(export_path)
-        ax.axis('off')
-        plt.show()
-        plt.close()
+            self.engine.execute(command)
+            return self.engine.fetchall()
