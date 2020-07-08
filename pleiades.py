@@ -68,10 +68,10 @@ class CZ:
             return self
 
     def mk_db(self, db, printable=False):
-        from sqlalchemy.exc import ProgrammingError
         command = f'CREATE DATABASE {db};'
         if printable or self.engine is None:
             return command
+        from sqlalchemy.exc import ProgrammingError
         try:
             self.engine.connect().execute(command)
             return f'database {db} created.'
@@ -90,8 +90,12 @@ class CZ:
         command = f'DROP DATABASE {db};'
         if printable or self.engine is None:
             return command
-        self.engine.connect().execute(command)
-        return f'database {db} deleted.'
+        from sqlalchemy.exc import InternalError
+        try:
+            self.engine.connect().execute(command)
+            return f'database {db} deleted.'
+        except InternalError:
+            return f'database {db} does not exists.'
 
     # Returns the name of the currently selected db.
     def current_db(self, printable=False):
@@ -100,14 +104,13 @@ class CZ:
             return command
         return self.engine.connect().execute(command).fetchone()[0]
 
-    def use_db(self, db, printable=False):
+    def use_db(self, db=None, printable=False):
+        if db is None:
+            db = self.database
         command = f'USE {db};'
         if printable or self.engine is None:
             return command
-        if self.alchemy:
-            self.engine.connect().execute(command)
-        else:
-            self.engine.execute(command)
+        self.engine.connect().execute(command)
         return f'database {db} selected.'
 
     def unuse_db(self, printable=False, _db='2arnbzheo2j0gygkteu9ltxtabmzldvb'):
@@ -116,10 +119,7 @@ class CZ:
         command += f'\nDROP DATABASE {_db};'
         if printable or self.engine is None:
             return command
-        if self.alchemy:
-            self.engine.connect().execute(command)
-        else:
-            self.engine.execute(command)
+        self.engine.connect().execute(command)
         return 'database deselected.'
 
     def select_from(self, table, cols=None):
@@ -135,6 +135,8 @@ class CZ:
                 command = command[:-(self.tabspace+1)]
         else:
             command += f' *\n'
+        if self.database:
+            table = self.database + '.' + table
         command += f'FROM {table}\n;'
         return self.SQL(command, engine=self.engine, alchemy=self.alchemy)
 
@@ -146,7 +148,6 @@ class CZ:
         underscores, removing brackets, forward slashes, and other special
         characters. The csv file is then replaced with a copy of itself with
         the cleaned column names.
-
         params:
             file        path of file wholse column names are to be cleaned.
             sep         The character(s) used to replace brackets and special
@@ -166,33 +167,50 @@ class CZ:
             r = csv.reader(infile, delimiter=',', quotechar='"')
             colnames = next(r)
             colnames = [remove_special_characters(x.strip().lower().replace(' ', '_').replace('(', sep).replace(')', sep).replace('/', sep)) for x in colnames]
-
             w = csv.writer(outfile)
             w.writerow(colnames)
-            for i, row in enumerate(r):
-                if i > 0:
-                    w.writerow(row)
+            for row in r:
+                w.writerow(row)
 
         # Delete original and replace it with the cleaned file.
         os.remove(file)
         os.rename(tempfile, file)
 
-    def csv_table(self, file, tablename=None, pkey=None, nrows=100000, printable=False, **kwargs):
-        from pathlib import Path
+    def csv_table(self, file, table=None, pkey=None, nrows=100000, printable=False, **kwargs):
+        '''
+        Creates an empty table based on data from a file. Normally unnecessary
+        as pandas .to_sql() creates the table automatically, but could be
+        useful when that doesn't work.
+        params:
+            file        file the table datatypes will be based on.
+            table   if None, table = filename.
+            pkeys       the table names to pass on when defining the PRIMARY
+                        KEYS of the table. A composite primary key can be
+                        passed by separating the table names with ','.
+            nrows       determines the number of rows read by pandas when
+                        imputing the table datatypes. A large value results in
+                        unnecessary data being read. A small value may result
+                        in incorrect table datatype values.
+            printable   returns the SQL command that would have been executed
+                        as a printable string.
+            **kwargs    Other arguments to be passed on to pandas read_csv.
+        '''
         import pandas as pd
+        from pathlib import Path
         from math import ceil
-        if self.alchemy and printable is False:
-            return 'csv_insert creates the necessary tables with sqlalchemy.'
-        # The file name will be used as the table name if not provided.
-        if tablename is None:
-            tablename = Path(file).stem
+        from sqlalchemy.exc import InternalError
         # pandas is used to impute datatypes.
         df = pd.read_csv(file, nrows=nrows, **kwargs)
         df_dtypes = [x for x in df.dtypes.apply(lambda x: x.name)]
         df = df.fillna('')
         sql_dtypes = []
         tab = ' ' * self.tabspace
-        command = f'CREATE TABLE {tablename}(\n{tab}'
+        # The file name will be used as the table name if not provided.
+        if table is None:
+            table = Path(file).stem
+        if self.database:
+            table = self.database + '.' + table
+        command = f'CREATE TABLE {table}(\n{tab}'
         # pandas dtypes are converted to sql dtypes to create the table.
         for i, col in enumerate(df.columns):
             if df_dtypes[i] in self.dtype_dic:
@@ -211,14 +229,15 @@ class CZ:
         command = command[:-(self.tabspace+1)] + ');'
         if printable or self.engine is None:
             return command
-        self.engine.execute(command)
-        return f'table {tablename} created.'
+        try:
+            self.engine.connect().execute(command)
+            return f'table {table} created.'
+        except InternalError:
+            return f'table {table} already exists.'
 
-    def csv_insert(self, file, updatekey=None, postgre=False, tablename=None, chunksize=None, sizelim=1073741824, printable=False, **kwargs):
+    def csv_insert(self, file, table=None, updatekey=None, postgre=False, chunksize=None, sizelim=1073741824, printable=False, **kwargs):
         '''
-        Convenience function that uploads file data into a premade database
-        table.
-
+        Convenience function that uploads file data into a database.
         params:
             file        path of file to be uploaded.
             updatekey   given the table's primary key, the function updates all
@@ -228,7 +247,7 @@ class CZ:
                         this value.
             postgre     set to True if working on a PostgreSQL database. Only
                         relevant if not using sqlalchemy.
-            tablename   if None, tablename = filename.
+            table   if None, table = filename.
             chunksize   determines the number of rows read from the csv file to
                         insert into the database at a time. This is
                         specifically meant to deal with memory issues. As such,
@@ -246,42 +265,49 @@ class CZ:
         from pathlib import Path
         from re import sub
         from sqlalchemy.exc import InternalError
+        from sqlalchemy.exc import IntegrityError
         import pandas as pd
-        if tablename is None:
-            tablename = Path(file).stem
+        if table is None:
+            table = Path(file).stem
         # Automatically set chunksize if file exceeds sizelim.
         if Path(file).stat().st_size >= sizelim and chunksize is None:
             chunksize = 100000
+        if self.database:
+            self.csv_table(file, table=table, pkey=updatekey)
+            table = self.database + '.' + table
 
-        def individual_insert(df, tablename=None):
+        def individual_insert(df, table=None):
             rows = [x for x in df.itertuples(index=False, name=None)]
             cols = ', '.join(df.columns)
             for r in rows:
-                command = f'INSERT INTO {tablename}({cols}) VALUES '
+                command = f'INSERT INTO {table}({cols}) VALUES '
                 # Fix null values.
                 pattern = r"([^\w'])nan([^\w'])"
                 replacement = r'\1NULL\2'
                 fixed_r = sub(pattern, replacement, f'{r}')
                 command += f'{fixed_r}'
                 try:
-                    self.engine.execute(command)
-                except InternalError:
+                    self.engine.connect().execute(command)
+                except (InternalError, IntegrityError):
                     continue
 
-        def alchemy_insert(df, updatekey=None, tablename=None):
+        def alchemy_insert(df, updatekey=None, table=None):
             try:
-                df.to_sql(tablename, self.engine, index=False, if_exists='append')
-            except InternalError:
-                individual_insert(df, tablename=tablename)
+                df.to_sql(table, self.engine, index=False, if_exists='append')
+            except (InternalError, IntegrityError):
+                individual_insert(df, table=table)
             if updatekey:
-                command = f'ALTER TABLE {tablename} ADD PRIMARY KEY({updatekey});'
-                self.engine.execute(command)
+                try:
+                    command = f'ALTER TABLE {table} ADD PRIMARY KEY({updatekey});'
+                    self.engine.connect().execute(command)
+                except InternalError:
+                    return f'primary key {updatekey} already exists.'
 
-        def engine_insert(df, tablename=None, updatekey=None, postgre=False, printable=False):
+        def mass_insert(df, table=None, updatekey=None, postgre=False):
             rows = [x for x in df.itertuples(index=False, name=None)]
             cols = ', '.join(df.columns)
             tab = ' ' * self.tabspace
-            command = f'INSERT INTO {tablename}({cols})\nVALUES\n{tab}'
+            command = f'INSERT INTO {table}({cols})\nVALUES\n{tab}'
             for r in rows:
                 # Fix null values.
                 pattern = r"([^\w'])nan([^\w'])"
@@ -302,114 +328,140 @@ class CZ:
                         if c != updatekey:
                             command += f'{c}=VALUES({c})\n{tab},'
             command = command[:-(self.tabspace+1)] + ';\n'
-            if printable or self.engine is None:
-                return command
-            self.engine.execute(command)
+            return command
 
         if chunksize:
             reader = pd.read_csv(file, chunksize=chunksize, **kwargs)
-
             for chunk in reader:
                 df = pd.DataFrame(chunk)
-                if self.alchemy and printable is False:
-                    alchemy_insert(df, updatekey=updatekey,
-                                   tablename=tablename)
-                if printable or self.engine is None:
+                if printable:
                     with open('chunk_insert.txt', 'a') as f:
-                        f.write(engine_insert(
-                            df, updatekey=updatekey, postgre=postgre, tablename=tablename, printable=printable))
+                        f.write(mass_insert(df, updatekey=updatekey, postgre=postgre, table=table))
                 else:
-                    engine_insert(df, updatekey=updatekey, postgre=postgre,
-                                  tablename=tablename, printable=printable)
-
-            if printable is None and self.engine:
-                return f'data loaded into table {tablename}.'
+                    alchemy_insert(df, updatekey=updatekey, table=table)
+            if printable:
+                return 'sql commands written to chunk_insert.txt'
+            else:
+                return f'data loaded into table {table}.'
 
         else:
             df = pd.read_csv(file, **kwargs)
+            if printable:
+                return mass_insert(df, updatekey=updatekey, postgre=postgre, table=table)
+            alchemy_insert(df, updatekey=updatekey, table=table)
+            return f'data loaded into table {table}.'
 
-            if self.alchemy and printable is False:
-                alchemy_insert(df, updatekey=updatekey, tablename=tablename)
-                return f'data loaded into table {tablename}.'
-
-            if printable or self.engine is None:
-                return engine_insert(df, updatekey=updatekey, postgre=postgre, tablename=tablename, printable=printable)
-
-            engine_insert(df, updatekey=updatekey, postgre=postgre,
-                          tablename=tablename, printable=printable)
-            return f'data loaded into table {tablename}.'
-
-    def csvs_into_database(self, file_paths, tablename=None, clean_colnames=False, pkeys=None, printable=False, **kwargs):
+    def csvs_into_database(self, file_paths, table=None, clean_colnames=False, pkeys=None, **kwargs):
         '''
         Convenience function that uploads a folder of files into a database.
         params:
-            pkeys       accepts a list of primary keys to be assigned to each
-                        table to be created as a list. Must be given in file
-                        alphabetical order as the tables will be created in
-                        alphabetical order. The list can be incomplete, but any
-                        table not assigned a primary key should have '' as its
-                        corresponding list item. Note that this alphabetical
-                        order can be different from atom file order if _ is
-                        used.
-            printable   returns a printable of files that would be be inserted
-                        into the database.
-            **kwargs    optional arguments passed to pandas' read_csv function.
-                        na_values can be specified, keep_default_na=False,
-                        low_memory=False are useful arguments.
+            file_paths      a string passed to the glob module which determines
+                            what files to to upload. Normally in the format
+                            './folder/*.extension'
+            table       the table to upload the files into. Use when all
+                            files are to be uploaded into a SINGLE TABLE.
+            clean_colnames  standardizes and gets rid of potentially
+                            problematic characters in column names. Warning:
+                            replaces the column names in the original file.
+            pkeys           accepts a list of primary keys to be assigned to
+                            each table to be created. Must be given in file
+                            alphabetical order as the files will be read in
+                            alphabetical order. The list can be incomplete, but
+                            any table not assigned a primary key should have ''
+                            as its corresponding list item. Note that
+                            alphabetical on atom can be different from the way
+                            python processes the files if _ is in the file
+                            name.
+            **kwargs        optional arguments passed to pandas read_csv
+                            function. na_values can be specified,
+                            keep_default_na=False, low_memory=False are useful
+                            arguments.
         '''
         import glob
         files = glob.glob(file_paths)
-        if printable:
-            return files
         has_incomplete_pkeys = False
         if pkeys:
             if isinstance(pkeys, str):
                 pkeys = [pkeys]
-            else:
-                if tablename:
-                    for i, file in enumerate(files):
-                        if clean_colnames:
-                            self.csv_clean_colnames(file)
-                        if i == 0:
-                            self.csv_table(files[i], tablename=tablename, updatekey=pkeys[i], **kwargs)
-                        try:
-                            self.csv_insert(file, tablename=tablename, updatekey=pkeys[i], **kwargs)
-                        except TypeError or IndexError:
-                            self.csv_insert(file, tablename=tablename, **kwargs)
-                else:
-                    for i, file in enumerate(files):
-                        if clean_colnames:
-                            self.csv_clean_colnames(file)
-                        try:
-                            self.csv_table(file, updatekey=pkeys[i], **kwargs)
-                            self.csv_insert(file, updatekey=pkeys[i], **kwargs)
-                        except TypeError or IndexError:
-                            has_incomplete_pkeys = True
-                            self.csv_table(file, **kwargs)
-                            self.csv_insert(file, **kwargs)
-        else:
-            if tablename:
+            if table:
                 for i, file in enumerate(files):
                     if clean_colnames:
                         self.csv_clean_colnames(file)
-                    if i == 0:
-                        self.csv_table(files[i], tablename=tablename, **kwargs)
-                    self.csv_insert(file, tablename=tablename, **kwargs)
+                    try:
+                        self.csv_insert(file, table=table, updatekey=pkeys[i], **kwargs)
+                    except TypeError or IndexError:
+                        has_incomplete_pkeys = True
+                        self.csv_insert(file, table=table, **kwargs)
+            else:
+                for i, file in enumerate(files):
+                    if clean_colnames:
+                        self.csv_clean_colnames(file)
+                    try:
+                        self.csv_insert(file, updatekey=pkeys[i], **kwargs)
+                    except TypeError or IndexError:
+                        has_incomplete_pkeys = True
+                        self.csv_insert(file, **kwargs)
+        else:
+            if table:
+                for file in files:
+                    if clean_colnames:
+                        self.csv_clean_colnames(file)
+                    self.csv_insert(file, table=table, **kwargs)
             else:
                 for file in files:
                     if clean_colnames:
                         self.csv_clean_colnames(file)
-                    self.csv_table(file, **kwargs)
                     self.csv_insert(file, **kwargs)
-        return_statement = f'files written to database {self.get_db()}.'
+
+        return_statement = f'files written to database {self.current_db()}.'
         if has_incomplete_pkeys:
             return_statement = 'not all tables have primary keys.\n' + return_statement
         return return_statement
+
+    def show_tables(self, all=False, printable=False):
+        if self.database:
+            if all:
+                command = f"SELECT TABLE_NAME FROM {self.database}.INFORMATION_SCHEMA.TABLES WHERE TABLE_TYPE='BASE TABLE';"
+            else:
+                command = f'SHOW TABLES FROM {self.database};'
+        else:
+            if all:
+                command = f"SELECT TABLE_NAME FROM INFORMATION_SCHEMA.TABLES WHERE TABLE_TYPE='BASE TABLE';"
+            else:
+                command = 'SHOW TABLES;'
+        if printable or self.engine is None:
+            return command
+        import pandas as pd
+        df = pd.read_sql_query(command, self.engine)
+        return df
+
+    def clone_table(self, target, new_table, cols=None, printable=False):
+        tab = ' ' * self.tabspace
+        command = f'CREATE TABLE {new_table} AS\n{tab}'
+        if self.database:
+            target = self.database + '.' + target
+        if cols:
+            if isinstance(cols, str):
+                cols = [cols]
+            cols = ', '.join(cols)
+            command += f'SELECT {cols}\n{tab}'
+        else:
+            command += f'SELECT *\n{tab}'
+        command += f'FROM {target}\n;'
+        if printable or self.engine is None:
+            return command
+        self.engine.connect().execute(command)
+        return f'table {target} cloned into table {new_table}.'
 
     def del_tables(self, tables, printable=False):
         tab = ' ' * self.tabspace
         command = f'DROP TABLES'
         if isinstance(tables, str):
+            tables = [tables]
+        if self.database:
+            for i, table in enumerate(tables):
+                tables[i] = self.database + '.' + table
+        if len(tables) == 1:
             command += f' {tables};'
             return_string = tables
         else:
@@ -420,34 +472,16 @@ class CZ:
             return_string = ', '.join(tables)
         if printable or self.engine is None:
             return command
-        if self.alchemy:
-            self.engine.connect().execute(command)
-        else:
-            self.engine.execute(command)
+        self.engine.connect().execute(command)
         return f'table(s) {return_string} deleted.'
 
-    def show_columns(self, table, all=False):
+    def show_columns(self, table, all=False, printable=False):
+        if self.database:
+            table = self.database + '.' + table
         if all:
-            command = f"SHOW ALL COLUMNS FROM {table};"
+            command = f'SHOW ALL COLUMNS FROM {table};'
         else:
-            command = f"SHOW COLUMNS FROM {table};"
-        if self.alchemy:
-            import pandas as pd
-            df = pd.read_sql_query(command, self.engine)
-            return df
-        else:
-            self.engine.execute(command)
-            return self.engine.fetchall()
-
-    def show_tables(self, all=False):
-        if all:
-            command = f"SELECT TABLE_NAME FROM INFORMATION_SCHEMA.TABLES WHERE TABLE_TYPE='BASE TABLE';"
-        else:
-            command = 'SHOW TABLES;'
-        if self.alchemy:
-            import pandas as pd
-            df = pd.read_sql_query(command, self.engine)
-            return df
-        else:
-            self.engine.execute(command)
-            return self.engine.fetchall()
+            command = f'SHOW COLUMNS FROM {table};'
+        import pandas as pd
+        df = pd.read_sql_query(command, self.engine)
+        return df

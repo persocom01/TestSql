@@ -17,14 +17,14 @@ This project used the database server from the WinNMP server stack. Python was u
 pip was used to install mariadb python connectors. To install, open cmd and type:
 
 ```
-pip install --pre mariadb
+pip install mariadb
 pip install sqlalchemy
 pip install pymysql
 ```
 
 This installs following modules:
 
-* mariadb - the offical mariadb python connector.
+* mariadb - the official mariadb python connector.
 * sqlalchemy - a comprehensive set of tools for working with databases and Python.
 * pymysql - the api for sqlalchemy's engine.
 

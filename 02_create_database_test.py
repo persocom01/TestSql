@@ -31,8 +31,10 @@ command = f'CREATE DATABASE {dbname};'
 print(cz.mk_db(dbname, printable=True))
 try:
     cursor.execute(command)
+    print('database created.')
+    print()
 except mdb.DatabaseError:
-    print('database exists')
+    print('database already exists.')
     print()
 
 # Show databases.
@@ -43,8 +45,8 @@ dbs = cursor.fetchall()
 print(dbs)
 print()
 
-# End.
-cursor.close()
-mdb_con.commit()
-mdb_con.close()
-print('commands executed.')
+# The mariadb connector autocommits by default, but if you use:
+# mdb_con.autocommit = False
+# you need to wite the following code after every script:
+# mdb_con.commit()
+# mdb_con.close()
