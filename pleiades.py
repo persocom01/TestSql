@@ -438,11 +438,7 @@ class CZ:
         df = pd.read_sql_query(command, self.engine)
         return df
 
-<<<<<<< HEAD
     def clone_table(self, target, new_table, cols=None, where=None, printable=False):
-=======
-    def clone_table(self, target, new_table=None, cols=None, printable=False):
->>>>>>> 6e4b09b2dc7b02572fc28ac228413725ec8f87a4
         tab = ' ' * self.tabspace
         if new_table is None:
             new_table = target + '_copy'

@@ -1,27 +1,34 @@
 # Demonstrates selection of data from database tables.
 # Contrasts using sql sqlalchemy vs mariadb base connector.
-from sqlalchemy import create_engine
-import mariadb as mdb
 import json
+import mariadb as mdb
+from sqlalchemy import create_engine
+import pleiades as ple
 import pandas as pd
 
 pd.set_option('display.max_columns', 100)
 pd.set_option('display.max_rows', 300)
 
-# sqlalchemy's engine strings are written in the form:
-# dialect[+driver]://user:password@host:port/dbname[?key=value..]
-# Leave out /dbname if not connecting to a db.
-# It seems to work even if the port is not given.
-engine = create_engine('mysql+pymysql://root:@localhost/testDB')
-con = engine.connect()
-
 dbname = 'testDB'
 cfg_path = './server.cfg'
 
 with open(cfg_path, 'r') as f:
-    server_config = json.load(f)
-db = mdb.connect(**server_config)
-cursor = db.cursor()
+    cfg = json.load(f)
+
+# Official mdb connector.
+mdb_con = mdb.connect(**cfg)
+cursor = mdb_con.cursor()
+
+# sqlalchemy connector.
+try:
+    password = cfg['password']
+except KeyError:
+    password = ''
+engine_string = 'mysql+pymysql://' + cfg['user'] + ':' + password + '@' + cfg['host'] + '/' + dbname
+engine = create_engine(engine_string)
+con = engine.connect()
+
+cz = ple.CZ(engine)
 
 command = f'USE {dbname};'
 try:

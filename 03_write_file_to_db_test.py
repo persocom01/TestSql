@@ -75,8 +75,8 @@ print(cz.csv_insert('./data/client.csv', printable=True))
 
 # Convenience function to load files into database.
 file_paths = './data/*.csv'
-print(cz.csvs_into_database(file_paths, pkeys=[
-      'id', 'id', 'id', 'id', '', 'id', 'id']))
+# print(cz.csvs_into_database(file_paths, pkeys=[
+#       'id', 'id', 'id', 'id', '', 'id', 'id']))
 # Show created tables. The sql query is SHOW TABLES
 print(cz.show_tables())
 print()
