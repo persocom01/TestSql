@@ -166,7 +166,8 @@ class CZ:
         with open(file, 'r') as infile, open(tempfile, 'w', newline='') as outfile:
             r = csv.reader(infile, delimiter=',', quotechar='"')
             colnames = next(r)
-            colnames = [remove_special_characters(x.strip().lower().replace(' ', '_').replace('(', sep).replace(')', sep).replace('/', sep)) for x in colnames]
+            colnames = [remove_special_characters(x.strip().lower().replace(' ', '_').replace(
+                '(', sep).replace(')', sep).replace('/', sep)) for x in colnames]
             w = csv.writer(outfile)
             w.writerow(colnames)
             for row in r:
@@ -336,7 +337,8 @@ class CZ:
                 df = pd.DataFrame(chunk)
                 if printable:
                     with open('chunk_insert.txt', 'a') as f:
-                        f.write(mass_insert(df, updatekey=updatekey, postgre=postgre, table=table))
+                        f.write(mass_insert(df, updatekey=updatekey,
+                                            postgre=postgre, table=table))
                 else:
                     alchemy_insert(df, updatekey=updatekey, table=table)
             if printable:
@@ -388,7 +390,8 @@ class CZ:
                     if clean_colnames:
                         self.csv_clean_colnames(file)
                     try:
-                        self.csv_insert(file, table=table, updatekey=pkeys[i], **kwargs)
+                        self.csv_insert(file, table=table,
+                                        updatekey=pkeys[i], **kwargs)
                     except TypeError or IndexError:
                         has_incomplete_pkeys = True
                         self.csv_insert(file, table=table, **kwargs)
@@ -435,8 +438,10 @@ class CZ:
         df = pd.read_sql_query(command, self.engine)
         return df
 
-    def clone_table(self, target, new_table, cols=None, printable=False):
+    def clone_table(self, target, new_table=None, cols=None, printable=False):
         tab = ' ' * self.tabspace
+        if new_table is None:
+            new_table = target + '_copy'
         command = f'CREATE TABLE {new_table} AS\n{tab}'
         if self.database:
             target = self.database + '.' + target
