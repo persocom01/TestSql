@@ -85,6 +85,6 @@ print()
 tables = ['client', 'konosuba', 'partner', 'quest_map',
           'quest', 'staff_request', 'timesheet_entry']
 # print(cz.del_tables(tables, printable=True))
-print(cz.del_tables(tables))
-print(cz.show_tables())
+# print(cz.del_tables(tables))
+# print(cz.show_tables())
 print()

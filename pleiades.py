@@ -435,7 +435,7 @@ class CZ:
         df = pd.read_sql_query(command, self.engine)
         return df
 
-    def clone_table(self, target, new_table, cols=None, printable=False):
+    def clone_table(self, target, new_table, cols=None, where=None, printable=False):
         tab = ' ' * self.tabspace
         command = f'CREATE TABLE {new_table} AS\n{tab}'
         if self.database:
@@ -447,7 +447,11 @@ class CZ:
             command += f'SELECT {cols}\n{tab}'
         else:
             command += f'SELECT *\n{tab}'
-        command += f'FROM {target}\n;'
+        command += f'FROM {target}\n{tab}'
+        if where:
+            command += f'WHERE {where}\n;'
+        else:
+            command = command[:-(self.tabspace+1)] + ';'
         if printable or self.engine is None:
             return command
         self.engine.connect().execute(command)
