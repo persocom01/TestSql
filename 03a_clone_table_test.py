@@ -25,31 +25,6 @@ cz = ple.CZ(cursor)
 
 # Demonstrates creating a table.
 print('clone table:')
-print(cz.clone_table('konosuba', 'id', printable=True))
-print()
-
-# Demonstrates writing data to a table.
-print('insert data:')
-print(cz.csv_insert('./data/client.csv', printable=True))
-print()
-
-# Convenience function to load files into database.
-file_paths = './data/*.csv'
-print(cz.csvs_into_database(file_paths, [
-      'id', 'id', 'id', 'id', '', 'id', 'id']))
-# Show created tables. The sql query is SHOW TABLES
+print(cz.clone_table('konosuba', printable=True))
 print(cz.show_tables())
 print()
-
-# Drop tables.
-tables = ['client', 'konosuba', 'partner', 'quest_map',
-          'quest', 'staff_request', 'timesheet_entry']
-print(cz.del_tables(tables, printable=True))
-# print(cz.del_tables(tables))
-print()
-print(cz.show_tables())
-
-cursor.close()
-db.commit()
-db.close()
-print('commands executed.')
