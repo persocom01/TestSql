@@ -51,10 +51,9 @@ print(cz.csv_table('./data/client.csv', pkey=pkey, printable=True))
 # try:
 #     cursor.execute(command)
 #     print(f'table created.')
-#     print()
 # except mdb.ProgrammingError:
 #     print('table already exists.')
-#     print()
+print()
 
 # Demonstrates writing data to a table.
 command = '''
@@ -68,15 +67,14 @@ print(cz.csv_insert('./data/client.csv', printable=True))
 # try:
 #     cursor.execute(command)
 #     print(f'table values inserted.')
-#     print()
 # except mdb.IntegrityError as err:
 #     print(err)
-#     print()
+print()
 
 # Convenience function to load files into database.
 file_paths = './data/*.csv'
-# print(cz.csvs_into_database(file_paths, pkeys=[
-#       'id', 'id', 'id', 'id', '', 'id', 'id']))
+print(cz.csvs_into_database(file_paths, pkeys=[
+      'id', 'id', 'id', 'id', '', 'id', 'id']))
 # Show created tables. The sql query is SHOW TABLES
 print(cz.show_tables())
 print()

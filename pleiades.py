@@ -75,8 +75,8 @@ class CZ:
         try:
             self.engine.connect().execute(command)
             return f'database {db} created.'
-        except ProgrammingError:
-            return f'database {db} already exists.'
+        except ProgrammingError as err:
+            return err
 
     def show_db(self, printable=False):
         command = f'SHOW DATABASES;'
@@ -94,8 +94,8 @@ class CZ:
         try:
             self.engine.connect().execute(command)
             return f'database {db} deleted.'
-        except InternalError:
-            return f'database {db} does not exists.'
+        except InternalError as err:
+            return err
 
     # Returns the name of the currently selected db.
     def current_db(self, printable=False):
@@ -233,8 +233,8 @@ class CZ:
         try:
             self.engine.connect().execute(command)
             return f'table {table} created.'
-        except InternalError:
-            return f'table {table} already exists.'
+        except InternalError as err:
+            return err
 
     def csv_insert(self, file, table=None, updatekey=None, postgre=False, chunksize=None, sizelim=1073741824, printable=False, **kwargs):
         '''
@@ -301,8 +301,8 @@ class CZ:
                 try:
                     command = f'ALTER TABLE {table} ADD PRIMARY KEY({updatekey});'
                     self.engine.connect().execute(command)
-                except InternalError:
-                    return f'primary key {updatekey} already exists.'
+                except InternalError as err:
+                    return err
 
         def mass_insert(df, table=None, updatekey=None, postgre=False):
             rows = [x for x in df.itertuples(index=False, name=None)]
@@ -438,31 +438,35 @@ class CZ:
         df = pd.read_sql_query(command, self.engine)
         return df
 
-    def clone_table(self, target, new_table, cols=None, where=None, printable=False):
-        tab = ' ' * self.tabspace
+    def clone_table(self, target, new_table=None, cols=None, where=None, printable=False):
+        from sqlalchemy.exc import InternalError
         if new_table is None:
             new_table = target + '_copy'
-        command = f'CREATE TABLE {new_table} AS\n{tab}'
+        command = f'CREATE TABLE {new_table} AS\n'
         if self.database:
             target = self.database + '.' + target
         if cols:
             if isinstance(cols, str):
                 cols = [cols]
             cols = ', '.join(cols)
-            command += f'SELECT {cols}\n{tab}'
+            command += f'SELECT {cols}\n'
         else:
-            command += f'SELECT *\n{tab}'
-        command += f'FROM {target}\n{tab}'
+            command += f'SELECT *\n'
+        command += f'FROM {target}\n'
         if where:
             command += f'WHERE {where}\n;'
         else:
-            command = command[:-(self.tabspace+1)] + ';'
+            command = command + ';'
         if printable or self.engine is None:
             return command
-        self.engine.connect().execute(command)
+        try:
+            self.engine.connect().execute(command)
+        except InternalError as err:
+            return err
         return f'table {target} cloned into table {new_table}.'
 
     def del_tables(self, tables, printable=False):
+        from sqlalchemy.exc import InternalError
         tab = ' ' * self.tabspace
         command = f'DROP TABLES'
         if isinstance(tables, str):
@@ -481,7 +485,10 @@ class CZ:
             return_string = ', '.join(tables)
         if printable or self.engine is None:
             return command
-        self.engine.connect().execute(command)
+        try:
+            self.engine.connect().execute(command)
+        except InternalError as err:
+            return err
         return f'table(s) {return_string} deleted.'
 
     def show_columns(self, table, all=False, printable=False):
