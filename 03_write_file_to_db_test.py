@@ -34,14 +34,14 @@ try:
     cursor.execute(command)
     print(f'database {dbname} selected.')
     print()
-except mdb.ProgrammingError:
-    print('database does not exist')
+except mdb.ProgrammingError as err:
+    print(err)
     print()
 
 # Demonstrates creating a table.
 command = '''
 CREATE TABLE client(
-    id INT NOT NULL
+    id INT
     ,name VARCHAR(50)
     ,PRIMARY KEY(id)
 );
@@ -51,8 +51,8 @@ print(cz.csv_table('./data/client.csv', pkey=pkey, printable=True))
 # try:
 #     cursor.execute(command)
 #     print(f'table created.')
-# except mdb.ProgrammingError:
-#     print('table already exists.')
+# except mdb.ProgrammingError as err:
+#     print(err)
 print()
 
 # Demonstrates writing data to a table.

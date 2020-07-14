@@ -36,8 +36,8 @@ print(cz.mk_db(dbname, printable=True))
 try:
     cursor.execute(command)
     print('database created.')
-except mdb.DatabaseError:
-    print('database already exists.')
+except mdb.DatabaseError as err:
+    print(err)
 print()
 
 # Show databases.

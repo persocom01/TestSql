@@ -31,8 +31,8 @@ print(cz.del_db(dbname, printable=True))
 try:
     cursor.execute(command)
     print('database deleted.')
-except mdb.DatabaseError:
-    print('database does not exist.')
+except mdb.DatabaseError as err:
+    print(err)
 print()
 
 # Show databases.

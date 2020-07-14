@@ -43,12 +43,11 @@ FROM konosuba
 ;
 '''
 print(cz.clone_table('konosuba', printable=True))
-print(cz.clone_table('konosuba', printable=False))
 try:
     cursor.execute(command)
     print(f'table cloned.')
-except mdb.ProgrammingError:
-    print('table clone already exists')
+except mdb.ProgrammingError as err:
+    print(err)
 print()
 
 print(cz.show_tables())

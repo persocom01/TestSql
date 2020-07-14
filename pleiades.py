@@ -138,7 +138,7 @@ class CZ:
         if self.database:
             table = self.database + '.' + table
         command += f'FROM {table}\n;'
-        return self.SQL(command, engine=self.engine, alchemy=self.alchemy)
+        return self.SQL(command, engine=self.engine)
 
     def csv_clean_colnames(self, file, sep=''):
         '''
@@ -184,10 +184,10 @@ class CZ:
         useful when that doesn't work.
         params:
             file        file the table datatypes will be based on.
-            table   if None, table = filename.
+            table       if None, table = filename.
             pkeys       the table names to pass on when defining the PRIMARY
-                        KEYS of the table. A composite primary key can be
-                        passed by separating the table names with ','.
+                        KEYs of the table. If a list is passed, a composite
+                        primary key will be defined.
             nrows       determines the number of rows read by pandas when
                         imputing the table datatypes. A large value results in
                         unnecessary data being read. A small value may result
@@ -202,30 +202,35 @@ class CZ:
         from sqlalchemy.exc import InternalError
         # pandas is used to impute datatypes.
         df = pd.read_csv(file, nrows=nrows, **kwargs)
-        df_dtypes = [x for x in df.dtypes.apply(lambda x: x.name)]
-        df = df.fillna('')
-        sql_dtypes = []
         tab = ' ' * self.tabspace
         # The file name will be used as the table name if not provided.
         if table is None:
             table = Path(file).stem
         if self.database:
             table = self.database + '.' + table
+
+        def get_sql_dtypes(df):
+            sql_dtype_dict = {}
+            df_dtypes = [x for x in df.dtypes.apply(lambda x: x.name)]
+            df = df.fillna('')
+            # pandas dtypes are converted to sql dtypes to create the table.
+            for i, col in enumerate(df.columns):
+                if df_dtypes[i] in self.dtype_dic:
+                    sql_dtype_dict[col] = self.dtype_dic[df_dtypes[i]]
+                else:
+                    # Determine VARCHAR length.
+                    char_length = ceil(df[col].map(len).max() / 50) * 50
+                    sql_dtype_dict[col] = f'VARCHAR({char_length})'
+            return sql_dtype_dict
+
         command = f'CREATE TABLE {table}(\n{tab}'
-        # pandas dtypes are converted to sql dtypes to create the table.
-        for i, col in enumerate(df.columns):
-            if df_dtypes[i] in self.dtype_dic:
-                sql_dtypes.append(self.dtype_dic[df_dtypes[i]])
-            else:
-                # Determine VARCHAR length.
-                char_length = ceil(df[col].map(len).max() / 50) * 50
-                sql_dtypes.append(f'VARCHAR({char_length})')
-            if pkey and col == pkey:
-                command = command + \
-                    f'{col} {sql_dtypes[i]} NOT NULL\n{tab},'
-            else:
-                command = command + f'{col} {sql_dtypes[i]}\n{tab},'
+        sql_dtype_dict = get_sql_dtypes(df)
+        for col, sql_dtype in sql_dtype_dict.items():
+            command = command + f'{col} {sql_dtype}\n{tab},'
         if pkey:
+            if isinstance(pkey, str):
+                pkey = [pkey]
+            pkey = ', '.join(pkey)
             command += f'PRIMARY KEY({pkey})\n{tab},'
         command = command[:-(self.tabspace+1)] + ');'
         if printable or self.engine is None:
@@ -241,14 +246,13 @@ class CZ:
         Convenience function that uploads file data into a database.
         params:
             file        path of file to be uploaded.
-            updatekey   given the table's primary key, the function updates all
+            updatekey   given the table's PRIMARY KEY, the function updates all
                         values in the table with those from the file except the
-                        primary key. If sqlalchemy is used, tables values are
-                        updated by default, but the primary key is set using
-                        this value.
+                        primary key. If a new table is created, updatekey is
+                        set as the table's primary key.
             postgre     set to True if working on a PostgreSQL database. Only
                         relevant if not using sqlalchemy.
-            table   if None, table = filename.
+            table       if None, table = filename.
             chunksize   determines the number of rows read from the csv file to
                         insert into the database at a time. This is
                         specifically meant to deal with memory issues. As such,
@@ -280,13 +284,27 @@ class CZ:
         def individual_insert(df, table=None):
             rows = [x for x in df.itertuples(index=False, name=None)]
             cols = ', '.join(df.columns)
+            tab = ' ' * self.tabspace
             for r in rows:
                 command = f'INSERT INTO {table}({cols}) VALUES '
                 # Fix null values.
                 pattern = r"([^\w'])nan([^\w'])"
                 replacement = r'\1NULL\2'
                 fixed_r = sub(pattern, replacement, f'{r}')
-                command += f'{fixed_r}'
+                command += f'{fixed_r}\n'
+                if updatekey:
+                    if postgre:
+                        command = command[:-(self.tabspace+1)] + \
+                            f'ON CONFLICT ({updatekey}) DO UPDATE SET\n{tab}'
+                        for c in df.columns:
+                            if c != updatekey:
+                                command += f'{c}=excluded.{c}\n{tab},'
+                    else:
+                        command += f'ON DUPLICATE KEY UPDATE\n{tab}'
+                        for c in df.columns:
+                            if c not in updatekey:
+                                command += f'{c}=VALUES({c})\n{tab},'
+                    command = command[:-(self.tabspace+1)] + ';'
                 try:
                     self.engine.connect().execute(command)
                 except (InternalError, IntegrityError):
@@ -365,7 +383,7 @@ class CZ:
             clean_colnames  standardizes and gets rid of potentially
                             problematic characters in column names. Warning:
                             replaces the column names in the original file.
-            pkeys           accepts a list of primary keys to be assigned to
+            pkeys           accepts a list of PRIMARY KEYs to be assigned to
                             each table to be created. Must be given in file
                             alphabetical order as the files will be read in
                             alphabetical order. The list can be incomplete, but
@@ -468,7 +486,7 @@ class CZ:
     def del_tables(self, tables, printable=False):
         from sqlalchemy.exc import InternalError
         tab = ' ' * self.tabspace
-        command = f'DROP TABLES'
+        command = 'DROP TABLES'
         if isinstance(tables, str):
             tables = [tables]
         if self.database:
@@ -482,13 +500,13 @@ class CZ:
             for table in tables:
                 command += f'{table}\n{tab},'
             command = command[:-(self.tabspace+1)] + ';'
-            return_string = ', '.join(tables)
         if printable or self.engine is None:
             return command
         try:
             self.engine.connect().execute(command)
         except InternalError as err:
             return err
+        return_string = ', '.join(tables)
         return f'table(s) {return_string} deleted.'
 
     def show_columns(self, table, all=False, printable=False):
@@ -498,6 +516,57 @@ class CZ:
             command = f'SHOW ALL COLUMNS FROM {table};'
         else:
             command = f'SHOW COLUMNS FROM {table};'
+        if printable or self.engine is None:
+            return command
         import pandas as pd
         df = pd.read_sql_query(command, self.engine)
         return df
+
+    def insert_columns(self, to_table, from_table, cols=None, where=None, printable=False):
+        from sqlalchemy.exc import InternalError
+        if self.database:
+            to_table = self.database + '.' + to_table
+        command = f'INSERT INTO {to_table}\n'
+        if cols is None:
+            cols = '*'
+        elif isinstance(cols, str):
+            cols = [cols]
+            cols = ', '.join(cols)
+        else:
+            cols = ', '.join(cols)
+        command += f'SELECT {cols}\nFROM {from_table}\n'
+        if where:
+            command += f'WHERE {where}\n;'
+        else:
+            command += ';'
+        if printable or self.engine is None:
+            return command
+        try:
+            self.engine.connect().execute(command)
+        except InternalError as err:
+            return err
+        return_string = ', '.join(cols)
+        return f'column(s) {return_string} inserted into {to_table} from {from_table}.'
+
+    def del_columns(self, table, cols, if_exists=True, printable=False):
+        from sqlalchemy.exc import InternalError
+        if self.database:
+            table = self.database + '.' + table
+        command = f'ALTER TABLE {table}\n'
+        if isinstance(cols, str):
+            cols = [cols]
+        if if_exists:
+            drop_statement = 'DROP COLUMN IF EXISTS'
+        else:
+            drop_statement = 'DROP COLUMN'
+        for col in cols:
+            command += f'{drop_statement} {col}\n'
+        command += ';'
+        if printable or self.engine is None:
+            return command
+        try:
+            self.engine.connect().execute(command)
+        except InternalError as err:
+            return err
+        return_string = ', '.join(cols)
+        return f'column(s) {return_string} deleted.'

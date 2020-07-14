@@ -12,7 +12,8 @@ cz = ple.CZ(engine, alchemy=True)
 
 # INNER JOIN is most often used to connect multiple tables together. All
 # elements common to those tables are displayed, and the rest discarded.
-# Often used with SELECT agg(col) and GROUP BY col.
+# Often used with SELECT agg(col) and GROUP BY col. JOIN == INNER JOIN by
+# default.
 command = '''
 SELECT *
 FROM konosuba k
