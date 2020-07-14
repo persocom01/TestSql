@@ -241,14 +241,14 @@ class CZ:
         except InternalError as err:
             return err
 
-    def csv_insert(self, file, table=None, updatekey=None, postgre=False, chunksize=None, sizelim=1073741824, printable=False, **kwargs):
+    def csv_insert(self, file, table=None, pkey=None, postgre=False, chunksize=None, sizelim=1073741824, printable=False, **kwargs):
         '''
         Convenience function that uploads file data into a database.
         params:
             file        path of file to be uploaded.
-            updatekey   given the table's PRIMARY KEY, the function updates all
+            pkey        given the table's PRIMARY KEY, the function updates all
                         values in the table with those from the file except the
-                        primary key. If a new table is created, updatekey is
+                        primary key. If a new table is created, pkey is
                         set as the table's primary key.
             postgre     set to True if working on a PostgreSQL database. Only
                         relevant if not using sqlalchemy.
@@ -278,7 +278,7 @@ class CZ:
         if Path(file).stat().st_size >= sizelim and chunksize is None:
             chunksize = 100000
         if self.database:
-            self.csv_table(file, table=table, pkey=updatekey)
+            self.csv_table(file, table=table, pkey=pkey)
             table = self.database + '.' + table
 
         def individual_insert(df, table=None):
@@ -292,17 +292,17 @@ class CZ:
                 replacement = r'\1NULL\2'
                 fixed_r = sub(pattern, replacement, f'{r}')
                 command += f'{fixed_r}\n'
-                if updatekey:
+                if pkey:
                     if postgre:
                         command = command[:-(self.tabspace+1)] + \
-                            f'ON CONFLICT ({updatekey}) DO UPDATE SET\n{tab}'
+                            f'ON CONFLICT ({pkey}) DO UPDATE SET\n{tab}'
                         for c in df.columns:
-                            if c != updatekey:
+                            if c != pkey:
                                 command += f'{c}=excluded.{c}\n{tab},'
                     else:
                         command += f'ON DUPLICATE KEY UPDATE\n{tab}'
                         for c in df.columns:
-                            if c not in updatekey:
+                            if c not in pkey:
                                 command += f'{c}=VALUES({c})\n{tab},'
                     command = command[:-(self.tabspace+1)] + ';'
                 try:
@@ -310,19 +310,19 @@ class CZ:
                 except (InternalError, IntegrityError):
                     continue
 
-        def alchemy_insert(df, updatekey=None, table=None):
+        def alchemy_insert(df, pkey=None, table=None):
             try:
                 df.to_sql(table, self.engine, index=False, if_exists='append')
             except (InternalError, IntegrityError):
                 individual_insert(df, table=table)
-            if updatekey:
+            if pkey:
                 try:
-                    command = f'ALTER TABLE {table} ADD PRIMARY KEY({updatekey});'
+                    command = f'ALTER TABLE {table} ADD PRIMARY KEY({pkey});'
                     self.engine.connect().execute(command)
                 except InternalError as err:
                     return err
 
-        def mass_insert(df, table=None, updatekey=None, postgre=False):
+        def mass_insert(df, table=None, pkey=None, postgre=False):
             rows = [x for x in df.itertuples(index=False, name=None)]
             cols = ', '.join(df.columns)
             tab = ' ' * self.tabspace
@@ -333,18 +333,18 @@ class CZ:
                 replacement = r'\1NULL\2'
                 fixed_r = sub(pattern, replacement, f'{r}')
                 command += f'{fixed_r}\n{tab},'
-            if updatekey:
+            if pkey:
                 if postgre:
                     command = command[:-(self.tabspace+1)] + \
-                        f'ON CONFLICT ({updatekey}) DO UPDATE SET\n{tab}'
+                        f'ON CONFLICT ({pkey}) DO UPDATE SET\n{tab}'
                     for c in df.columns:
-                        if c != updatekey:
+                        if c != pkey:
                             command += f'{c}=excluded.{c}\n{tab},'
                 else:
                     command = command[:-(self.tabspace+1)] + \
                         f'ON DUPLICATE KEY UPDATE\n{tab}'
                     for c in df.columns:
-                        if c != updatekey:
+                        if c != pkey:
                             command += f'{c}=VALUES({c})\n{tab},'
             command = command[:-(self.tabspace+1)] + ';\n'
             return command
@@ -355,10 +355,10 @@ class CZ:
                 df = pd.DataFrame(chunk)
                 if printable:
                     with open('chunk_insert.txt', 'a') as f:
-                        f.write(mass_insert(df, updatekey=updatekey,
+                        f.write(mass_insert(df, pkey=pkey,
                                             postgre=postgre, table=table))
                 else:
-                    alchemy_insert(df, updatekey=updatekey, table=table)
+                    alchemy_insert(df, pkey=pkey, table=table)
             if printable:
                 return 'sql commands written to chunk_insert.txt'
             else:
@@ -367,8 +367,8 @@ class CZ:
         else:
             df = pd.read_csv(file, **kwargs)
             if printable:
-                return mass_insert(df, updatekey=updatekey, postgre=postgre, table=table)
-            alchemy_insert(df, updatekey=updatekey, table=table)
+                return mass_insert(df, pkey=pkey, postgre=postgre, table=table)
+            alchemy_insert(df, pkey=pkey, table=table)
             return f'data loaded into table {table}.'
 
     def csvs_into_database(self, file_paths, table=None, clean_colnames=False, pkeys=None, **kwargs):
@@ -409,7 +409,7 @@ class CZ:
                         self.csv_clean_colnames(file)
                     try:
                         self.csv_insert(file, table=table,
-                                        updatekey=pkeys[i], **kwargs)
+                                        pkey=pkeys[i], **kwargs)
                     except TypeError or IndexError:
                         has_incomplete_pkeys = True
                         self.csv_insert(file, table=table, **kwargs)
@@ -418,7 +418,7 @@ class CZ:
                     if clean_colnames:
                         self.csv_clean_colnames(file)
                     try:
-                        self.csv_insert(file, updatekey=pkeys[i], **kwargs)
+                        self.csv_insert(file, pkey=pkeys[i], **kwargs)
                     except TypeError or IndexError:
                         has_incomplete_pkeys = True
                         self.csv_insert(file, **kwargs)
