@@ -67,8 +67,8 @@ class CZ:
             self.command = command
             return self
 
-    def mk_db(self, db, printable=False):
-        command = f'CREATE DATABASE {db};'
+    def mk_db(self, db, charset='utf8', collate='utf8_general_ci', printable=False):
+        command = f'CREATE DATABASE {db} CHARACTER SET {charset} COLLATE {collate};'
         if printable or self.engine is None:
             return command
         from sqlalchemy.exc import ProgrammingError

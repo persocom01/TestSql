@@ -31,7 +31,7 @@ con = engine.connect()
 cz = ple.CZ(engine)
 
 # Create database.
-command = f'CREATE DATABASE {dbname};'
+command = f'CREATE DATABASE {dbname} CHARACTER SET utf8 COLLATE utf8_general_ci;'
 print(cz.mk_db(dbname, printable=True))
 try:
     cursor.execute(command)
