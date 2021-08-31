@@ -1,6 +1,6 @@
 # TestSQL
 
-An SQL testing playground organized by topic in the sql tutorial here: https://www.tutorialspoint.com/sql/index.htm
+An SQL testing playground organized by topic in the SQL tutorial here: https://www.tutorialspoint.com/sql/index.htm
 
 ## Installation
 
@@ -44,3 +44,13 @@ This installs following modules:
 * open_in_cmd
 * project-manager
 * script
+
+## SQL injections
+
+With SQL comes the danger of SQL injection attacks. These are pieces of SQL code inserted as values in SQL commands with variables. There are several ways to prevent SQL injection attacks:
+
+1. Putting quotes on values when running SQL statements to turn them into strings
+
+```
+f'INSERT INTO table_name(col1, col2) VALUES ("{value1}", "{value2}");'
+```

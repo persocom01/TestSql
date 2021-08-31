@@ -39,6 +39,11 @@ except mdb.ProgrammingError as err:
     print()
 
 # Demonstrates creating a table.
+# The timestamp data type is special in that the first one of its kind in a
+# table is automatically made to update itself with the current timestamp
+# whenever the table is updated. The full line to create a timestamp column is
+# as follows:
+# column_name TIMESTAMP NOT NULL DEFAULT current_timestamp() ON UPDATE CURRENT_TIMESTAMP,
 command = '''
 CREATE TABLE client(
     id INT
