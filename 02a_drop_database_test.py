@@ -19,7 +19,7 @@ try:
     password = cfg['password']
 except KeyError:
     password = ''
-engine_string = 'mysql+pymysql://' + cfg['user'] + ':' + password + '@' + cfg['host']
+engine_string = f"mysql+pymysql://{cfg['user']}:{password}@{cfg['host']}"
 engine = create_engine(engine_string)
 con = engine.connect()
 

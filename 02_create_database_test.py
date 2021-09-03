@@ -23,8 +23,11 @@ except KeyError:
 # sqlalchemy's engine strings are written in the form:
 # dialect[+driver]://user:password@host:port/dbname[?key=value..]
 # Leave out /dbname if not connecting to a db.
-# It seems to use 3306 default port if none is given.
-engine_string = 'mysql+pymysql://' + cfg['user'] + ':' + password + '@' + cfg['host']
+# It seems to use the database's appropriate default port if not specified.
+# In this case the default port is 3306.
+# How to write the engine string for various flavors of sql are detailed here:
+# https://docs.sqlalchemy.org/en/14/core/engines.html
+engine_string = f"mysql+pymysql://{cfg['user']}:{password}@{cfg['host']}"
 engine = create_engine(engine_string)
 con = engine.connect()
 

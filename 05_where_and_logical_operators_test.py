@@ -1,9 +1,22 @@
 # Demonstrates the keyword where and the logical operators that can be used
 # with it.
+import json
 import pandas as pd
 from sqlalchemy import create_engine
 
-engine = create_engine('mysql+pymysql://root:@localhost/testDB')
+dbname = 'testDB'
+cfg_path = './server.cfg'
+
+with open(cfg_path, 'r') as f:
+    cfg = json.load(f)
+
+# sqlalchemy connector.
+try:
+    password = cfg['password']
+except KeyError:
+    password = ''
+engine_string = f"mysql+pymysql://{cfg['user']}:{password}@{cfg['host']}/{dbname}"
+engine = create_engine(engine_string)
 con = engine.connect()
 
 # Comparison operators:

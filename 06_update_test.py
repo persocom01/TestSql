@@ -1,8 +1,21 @@
 # Demonstrates the update command.
+import json
 from sqlalchemy import create_engine
 import pleiades as ple
 
-engine = create_engine('mysql+pymysql://root:@localhost/testDB')
+dbname = 'testDB'
+cfg_path = './server.cfg'
+
+with open(cfg_path, 'r') as f:
+    cfg = json.load(f)
+
+# sqlalchemy connector.
+try:
+    password = cfg['password']
+except KeyError:
+    password = ''
+engine_string = f"mysql+pymysql://{cfg['user']}:{password}@{cfg['host']}/{dbname}"
+engine = create_engine(engine_string)
 con = engine.connect()
 
 # Demonstrates the basic update datement.
@@ -15,13 +28,13 @@ WHERE id = 1;
 '''
 con.execute(command)
 
-cz = ple.CZ(engine, alchemy=True)
+cz = ple.CZ(engine)
 
 print(cz.select_from('konosuba').ex())
 print()
 
 # Demonstrates mass updating of a table from a file.
-command = cz.csv_insert('./data/konosuba.csv', updatekey='id', printable=True)
+command = cz.csv_insert('./data/konosuba.csv', pkey='id', printable=True)
 print('command:')
 print(command)
 print()

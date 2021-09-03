@@ -493,7 +493,7 @@ class CZ:
             for i, table in enumerate(tables):
                 tables[i] = self.database + '.' + table
         if len(tables) == 1:
-            command += f' {tables};'
+            command += f' {tables[0]};'
             return_string = tables
         else:
             command += f'\n{tab}'

@@ -8,15 +8,27 @@
 import json
 import mariadb as mdb
 import pandas as pd
+from sqlalchemy import create_engine
 import pleiades as ple
 
 dbname = 'testDB'
 cfg_path = './server.cfg'
 
 with open(cfg_path, 'r') as f:
-    server_config = json.load(f)
-db = mdb.connect(**server_config)
-cursor = db.cursor()
+    cfg = json.load(f)
+
+# Official mdb connector.
+mdb_con = mdb.connect(**cfg)
+cursor = mdb_con.cursor()
+
+# sqlalchemy connector.
+try:
+    password = cfg['password']
+except KeyError:
+    password = ''
+engine_string = f"mysql+pymysql://{cfg['user']}:{password}@{cfg['host']}/{dbname}"
+engine = create_engine(engine_string)
+con = engine.connect()
 
 command = f'USE {dbname};'
 try:
@@ -24,7 +36,7 @@ try:
 except mdb.ProgrammingError:
     print('database does not exist')
 
-cz = ple.CZ(cursor)
+cz = ple.CZ(engine)
 
 # UNIQUE is similar to PRIMARY KEY in that it only allows unique values in a
 # column. However, UNIQUE allows a column to have null values, unlike PRIMARY
@@ -120,6 +132,6 @@ command = f'ALTER TABLE {tablename} MODIFY {column} {dtype} NOT NULL;'
 # print()
 
 cursor.close()
-db.commit()
-db.close()
+mdb_con.commit()
+mdb_con.close()
 print('commands executed.')

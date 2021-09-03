@@ -1,42 +1,24 @@
-# Demonstrates writing of files into a database.
-# The process involves creating tables in the database and loading the data
-# into it.
+# Demonstrates the creation of database tables. Unlike mdb, there is no USE
+# DATABASE command. Thus the database has to be specified on connection.
 import json
-import mariadb as mdb
 from sqlalchemy import create_engine
-import pleiades as ple
+from sqlalchemy import exc
 
-dbname = 'testDB'
-cfg_path = './server.cfg'
+dbname = 'food_order2'
+cfg_path = './PostgreSQL/server.cfg'
 
 with open(cfg_path, 'r') as f:
     cfg = json.load(f)
-
-# Official mdb connector.
-mdb_con = mdb.connect(**cfg)
-cursor = mdb_con.cursor()
 
 # sqlalchemy connector.
 try:
     password = cfg['password']
 except KeyError:
     password = ''
-engine_string = f"mysql+pymysql://{cfg['user']}:{password}@{cfg['host']}/{dbname}"
+engine_string = f"postgresql+psycopg2://{cfg['user']}:{password}@{cfg['host']}/{cfg['database']}"
 engine = create_engine(engine_string)
 con = engine.connect()
-
-cz = ple.CZ(engine)
-
-# Select database to be used. Can also be set in server.cfg instead.
-command = f'USE {dbname};'
-print(cz.use_db(dbname, printable=True))
-try:
-    cursor.execute(command)
-    print(f'database {dbname} selected.')
-    print()
-except mdb.ProgrammingError as err:
-    print(err)
-    print()
+con.execution_options(isolation_level='AUTOCOMMIT')
 
 # Demonstrates creating a table.
 # The timestamp data type is special in that the first one of its kind in a

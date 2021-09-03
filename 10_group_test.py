@@ -7,9 +7,11 @@ dbname = 'testDB'
 cfg_path = './server.cfg'
 
 with open(cfg_path, 'r') as f:
-    server_config = json.load(f)
-db = mdb.connect(**server_config)
-cursor = db.cursor()
+    cfg = json.load(f)
+
+# Official mdb connector.
+mdb_con = mdb.connect(**cfg)
+cursor = mdb_con.cursor()
 
 command = f'USE {dbname};'
 try:
@@ -58,6 +60,6 @@ print(df)
 print()
 
 cursor.close()
-db.commit()
-db.close()
+mdb_con.commit()
+mdb_con.close()
 print('commands executed.')

@@ -4,17 +4,15 @@ import json
 # Aside from this, if connecting to a cloud server over the net, ensure that it
 # is set to publicly available.
 server_config = {
-    # This is the mdb superuser.
-    'user': 'root',
-    # 'password': '1234',
+    # This is the PostgreSQL superuser.
+    'user': 'postgres',
+    'password': 'admin',
     'host': '127.0.0.1',
-    'port': 3306,
-    'database': 'testDB',
-    # Unknown how to set local_infile.
-    # 'local_infile': True
+    'port': 5432,
+    'database': 'food_order2'
 }
 
-cfg_path = './server.cfg'
+cfg_path = './PostgreSQL/server.cfg'
 
 # Create human readable json file.
 with open(cfg_path, 'w') as f:
