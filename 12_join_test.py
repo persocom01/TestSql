@@ -1,3 +1,5 @@
+# Demonstrates joins.
+import json
 from sqlalchemy import create_engine
 import pandas as pd
 import pleiades as ple
@@ -5,10 +7,22 @@ import pleiades as ple
 pd.set_option('display.max_columns', 100)
 pd.set_option('display.max_rows', 300)
 
-engine = create_engine('mysql+pymysql://root:@localhost/testDB')
+dbname = 'testDB'
+cfg_path = './server.cfg'
+
+with open(cfg_path, 'r') as f:
+    cfg = json.load(f)
+
+# sqlalchemy connector.
+try:
+    password = cfg['password']
+except KeyError:
+    password = ''
+engine_string = f"mysql+pymysql://{cfg['user']}:{password}@{cfg['host']}/{dbname}"
+engine = create_engine(engine_string)
 con = engine.connect()
 
-cz = ple.CZ(engine, alchemy=True)
+cz = ple.CZ(engine)
 
 # INNER JOIN is most often used to connect multiple tables together. All
 # elements common to those tables are displayed, and the rest discarded.

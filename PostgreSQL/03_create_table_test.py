@@ -27,7 +27,7 @@ con.execution_options(isolation_level='AUTOCOMMIT')
 # as follows:
 # column_name TIMESTAMP NOT NULL DEFAULT current_timestamp() ON UPDATE CURRENT_TIMESTAMP,
 command = '''
-CREATE TABLE client(
+CREATE TABLE IF NOT EXISTS client(
     id INT
     ,name VARCHAR(50)
     ,PRIMARY KEY(id)

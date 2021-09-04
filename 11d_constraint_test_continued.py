@@ -5,13 +5,26 @@
 # FOREIGN KEY
 # CHECK
 # DEFAULT
+import json
 from sqlalchemy import create_engine
 import pleiades as ple
 
-engine = create_engine('mysql+pymysql://root:@localhost/testDB')
+dbname = 'testDB'
+cfg_path = './server.cfg'
+
+with open(cfg_path, 'r') as f:
+    cfg = json.load(f)
+
+# sqlalchemy connector.
+try:
+    password = cfg['password']
+except KeyError:
+    password = ''
+engine_string = f"mysql+pymysql://{cfg['user']}:{password}@{cfg['host']}/{dbname}"
+engine = create_engine(engine_string)
 con = engine.connect()
 
-cz = ple.CZ(engine, alchemy=True)
+cz = ple.CZ(engine)
 
 # DEFAULT is used to define a default value for a column when no value is
 # specified. Formulas or functions can be defined as default values. Default

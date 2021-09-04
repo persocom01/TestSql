@@ -117,12 +117,13 @@ print()
 # WHERE age is NULL;
 column = 'age'
 tablename = 'konosuba'
-for i, col in enumerate(cz.show_columns(tablename)):
-    if col[0] == column:
+print(cz.show_columns(tablename))
+for i, col in enumerate(cz.show_columns(tablename)['Field']):
+    if col == column:
         col_index = i
-dtype = cz.show_columns(tablename)[col_index][1]
+dtype = cz.show_columns(tablename)['Type'][col_index]
 command = f'ALTER TABLE {tablename} MODIFY {column} {dtype} NOT NULL;'
-# cursor.execute(command)
+cursor.execute(command)
 # df = pd.DataFrame(cz.show_columns(tablename))
 # print('not null:')
 # print(df)
