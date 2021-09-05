@@ -7,7 +7,7 @@ from sqlalchemy import create_engine
 from sqlalchemy import exc
 
 # SQL is case insensitive.
-dbname = 'food_order2'
+dbname = 'food_order'
 cfg_path = './PostgreSQL/server.cfg'
 
 with open(cfg_path, 'r') as f:
