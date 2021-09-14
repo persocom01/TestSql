@@ -28,7 +28,9 @@ except KeyError:
 # How to write the engine string for various flavors of sql are detailed here:
 # https://docs.sqlalchemy.org/en/14/core/engines.html
 engine_string = f"mysql+pymysql://{cfg['user']}:{password}@{cfg['host']}"
-engine = create_engine(engine_string)
+# pool_pre_ping=True is used to prevent errors caused by MySQL automatically
+# closing the connection after 8 hours.
+engine = create_engine(engine_string, pool_pre_ping=True, pool_recycle=300)
 con = engine.connect()
 
 cz = ple.CZ(engine)

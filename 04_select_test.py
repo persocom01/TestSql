@@ -25,7 +25,7 @@ try:
 except KeyError:
     password = ''
 engine_string = f"mysql+pymysql://{cfg['user']}:{password}@{cfg['host']}/{dbname}"
-engine = create_engine(engine_string)
+engine = create_engine(engine_string, pool_pre_ping=True, pool_recycle=300)
 con = engine.connect()
 
 cz = ple.CZ(engine)
